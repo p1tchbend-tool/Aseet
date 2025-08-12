@@ -115,62 +115,44 @@ var diffCmd = &cobra.Command{
 		sheets1 := f1.GetSheetList()
 		sheets2 := f2.GetSheetList()
 
-		map1 := make(map[string]bool)
+		// Create maps for quick lookup
+		sheetMap1 := make(map[string]bool)
 		for _, s := range sheets1 {
-			map1[s] = true
+			sheetMap1[s] = true
 		}
-
-		map2 := make(map[string]bool)
+		sheetMap2 := make(map[string]bool)
 		for _, s := range sheets2 {
-			map2[s] = true
+			sheetMap2[s] = true
 		}
 
-		onlyIn1 := []string{}
+		// Create a combined, unique, sorted list of all sheet names
+		allSheetsMap := make(map[string]bool)
 		for _, s := range sheets1 {
-			if !map2[s] {
-				onlyIn1 = append(onlyIn1, s)
-			}
+			allSheetsMap[s] = true
 		}
-
-		onlyIn2 := []string{}
 		for _, s := range sheets2 {
-			if !map1[s] {
-				onlyIn2 = append(onlyIn2, s)
+			allSheetsMap[s] = true
+		}
+		var allSheets []string
+		for s := range allSheetsMap {
+			allSheets = append(allSheets, s)
+		}
+		sort.Strings(allSheets)
+
+		for _, sheet := range allSheets {
+			_, existsIn1 := sheetMap1[sheet]
+			_, existsIn2 := sheetMap2[sheet]
+
+			if !existsIn1 {
+				fmt.Printf("Sheet '%s' only in %s\n\n", sheet, file2Path)
+				continue
 			}
-		}
-
-		sheetNameDiff := false
-		if len(onlyIn1) > 0 {
-			sheetNameDiff = true
-			fmt.Printf("Sheets only in %s:\n", file1Path)
-			for _, s := range onlyIn1 {
-				fmt.Printf("- %s\n", s)
+			if !existsIn2 {
+				fmt.Printf("Sheet '%s' only in %s\n\n", sheet, file1Path)
+				continue
 			}
-			fmt.Println()
-		}
 
-		if len(onlyIn2) > 0 {
-			sheetNameDiff = true
-			fmt.Printf("Sheets only in %s:\n", file2Path)
-			for _, s := range onlyIn2 {
-				fmt.Printf("- %s\n", s)
-			}
-			fmt.Println()
-		}
-
-		commonSheets := []string{}
-		for _, s := range sheets1 {
-			if map2[s] {
-				commonSheets = append(commonSheets, s)
-			}
-		}
-
-		contentDiff := false
-		if len(commonSheets) > 0 && (len(onlyIn1) > 0 || len(onlyIn2) > 0) {
-			fmt.Println("--- Comparing common sheets ---")
-		}
-
-		for _, sheet := range commonSheets {
+			// Common sheet logic
 			row1, rowNum1, err1 := findHeaderRow(f1, sheet)
 			if err1 != nil {
 				fmt.Fprintf(os.Stderr, "Error reading sheet %s from %s: %v\n", sheet, file1Path, err1)
@@ -183,11 +165,7 @@ var diffCmd = &cobra.Command{
 				continue
 			}
 
-			if row1 == nil && row2 == nil {
-				continue
-			}
-
-			// Filter out empty cells for comparison
+			// Compare headers
 			var r1NonEmpty []string
 			for _, cell := range row1 {
 				if cell != "" {
@@ -205,14 +183,12 @@ var diffCmd = &cobra.Command{
 			for _, s := range r1NonEmpty {
 				map1[s]++
 			}
-
 			map2 := make(map[string]int)
 			for _, s := range r2NonEmpty {
 				map2[s]++
 			}
 
 			var onlyInFile1, onlyInFile2 []string
-
 			for val, count1 := range map1 {
 				count2 := map2[val]
 				if count1 > count2 {
@@ -221,7 +197,6 @@ var diffCmd = &cobra.Command{
 					}
 				}
 			}
-
 			for val, count2 := range map2 {
 				count1 := map1[val]
 				if count2 > count1 {
@@ -232,7 +207,6 @@ var diffCmd = &cobra.Command{
 			}
 
 			if len(onlyInFile1) > 0 || len(onlyInFile2) > 0 {
-				contentDiff = true
 				fmt.Printf("Sheet '%s': Header row content mismatch. Comparing %s (Row %d) and %s (Row %d):\n", sheet, file1Path, rowNum1, file2Path, rowNum2)
 				if len(onlyInFile1) > 0 {
 					fmt.Printf("  Columns only in %s:\n", file1Path)
@@ -247,9 +221,10 @@ var diffCmd = &cobra.Command{
 					}
 				}
 				fmt.Println()
+				continue // Headers differ, move to next sheet
 			}
 
-			// Row-by-row comparison
+			// Headers are identical, compare data rows
 			allRows1, err := f1.GetRows(sheet)
 			if err != nil {
 				fmt.Fprintf(os.Stderr, "Error reading all rows from sheet %s in %s: %v\n", sheet, file1Path, err)
@@ -261,11 +236,9 @@ var diffCmd = &cobra.Command{
 				continue
 			}
 
-			// Map header names to their column indices for efficient lookup
 			header1Indices := make(map[string]int)
 			for i, h := range row1 {
 				if h != "" {
-					// In case of duplicate headers, prefer the first one
 					if _, exists := header1Indices[h]; !exists {
 						header1Indices[h] = i
 					}
@@ -280,7 +253,6 @@ var diffCmd = &cobra.Command{
 				}
 			}
 
-			// Identify common headers and sort them for consistent order
 			var commonHeaderSlice []string
 			for h := range header1Indices {
 				if _, ok := header2Indices[h]; ok {
@@ -289,7 +261,6 @@ var diffCmd = &cobra.Command{
 			}
 			sort.Strings(commonHeaderSlice)
 
-			// Compare data rows
 			maxRows := len(allRows1)
 			if len(allRows2) > maxRows {
 				maxRows = len(allRows2)
@@ -299,7 +270,6 @@ var diffCmd = &cobra.Command{
 			for i := 0; i < maxRows; i++ {
 				physicalRowNum := i + 1
 
-				// Skip header rows
 				if (rowNum1 > 0 && physicalRowNum == rowNum1) || (rowNum2 > 0 && physicalRowNum == rowNum2) {
 					continue
 				}
@@ -334,7 +304,6 @@ var diffCmd = &cobra.Command{
 					if !rowContentDiff {
 						fmt.Printf("Sheet '%s': Found differences in row content:\n", sheet)
 						rowContentDiff = true
-						contentDiff = true // Set global flag
 					}
 					row1Str := strings.Join(row1Vals, ", ")
 					row2Str := strings.Join(row2Vals, ", ")
@@ -344,10 +313,6 @@ var diffCmd = &cobra.Command{
 			if rowContentDiff {
 				fmt.Println()
 			}
-		}
-
-		if !sheetNameDiff && !contentDiff {
-			fmt.Println("The sheet names and header rows are identical in both files.")
 		}
 	},
 }
