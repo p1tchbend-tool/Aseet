@@ -3,6 +3,8 @@ package cmd
 import (
 	"fmt"
 	"os"
+	"sort"
+	"strings"
 
 	"github.com/spf13/cobra"
 	"github.com/xuri/excelize/v2"
@@ -278,13 +280,14 @@ var diffCmd = &cobra.Command{
 				}
 			}
 
-			// Identify common headers
-			commonHeaders := make(map[string]struct{})
+			// Identify common headers and sort them for consistent order
+			var commonHeaderSlice []string
 			for h := range header1Indices {
 				if _, ok := header2Indices[h]; ok {
-					commonHeaders[h] = struct{}{}
+					commonHeaderSlice = append(commonHeaderSlice, h)
 				}
 			}
+			sort.Strings(commonHeaderSlice)
 
 			// Compare data rows
 			maxRows := len(allRows1)
@@ -310,14 +313,11 @@ var diffCmd = &cobra.Command{
 				}
 
 				rowHasDiff := false
-				diffs := []string{}
+				var row1Vals, row2Vals []string
 
-				for hName := range commonHeaders {
-					idx1, ok1 := header1Indices[hName]
-					idx2, ok2 := header2Indices[hName]
-					if !ok1 || !ok2 {
-						continue
-					}
+				for _, hName := range commonHeaderSlice {
+					idx1 := header1Indices[hName]
+					idx2 := header2Indices[hName]
 
 					val1 := ""
 					if idx1 < len(currentRow1) {
@@ -330,8 +330,9 @@ var diffCmd = &cobra.Command{
 
 					if val1 != val2 {
 						rowHasDiff = true
-						diffs = append(diffs, fmt.Sprintf("    - Col '%s': '%s' vs '%s'", hName, val1, val2))
 					}
+					row1Vals = append(row1Vals, val1)
+					row2Vals = append(row2Vals, val2)
 				}
 
 				if rowHasDiff {
@@ -340,10 +341,9 @@ var diffCmd = &cobra.Command{
 						rowContentDiff = true
 						contentDiff = true // Set global flag
 					}
-					fmt.Printf("  - Row %d:\n", physicalRowNum)
-					for _, d := range diffs {
-						fmt.Println(d)
-					}
+					row1Str := strings.Join(row1Vals, ", ")
+					row2Str := strings.Join(row2Vals, ", ")
+					fmt.Printf("  - Row %d: [%s] vs [%s]\n", physicalRowNum, row1Str, row2Str)
 				}
 			}
 			if rowContentDiff {
