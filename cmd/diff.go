@@ -9,8 +9,7 @@ import (
 )
 
 // findHeaderRow scans the first 100 rows to find the header row.
-// A header row candidate has no empty cells between the first and last non-empty cell.
-// The header row is the candidate with the most non-empty cells.
+// The header row is defined as the row with the most non-empty cells.
 func findHeaderRow(f *excelize.File, sheetName string) ([]string, int, error) {
 	rows, err := f.GetRows(sheetName)
 	if err != nil {
@@ -28,51 +27,22 @@ func findHeaderRow(f *excelize.File, sheetName string) ([]string, int, error) {
 
 	for i := 0; i < numRowsToCheck; i++ {
 		row := rows[i]
-		if len(row) == 0 {
-			continue
-		}
 
-		firstCellIdx := -1
-		lastCellIdx := -1
-
-		// Find first and last non-empty cell indices
-		for j, cell := range row {
+		nonEmptyCount := 0
+		for _, cell := range row {
 			if cell != "" {
-				if firstCellIdx == -1 {
-					firstCellIdx = j
-				}
-				lastCellIdx = j
+				nonEmptyCount++
 			}
 		}
 
-		if firstCellIdx == -1 { // Row is effectively empty
-			continue
-		}
-
-		// Check for empty cells between first and last non-empty cells
-		isCandidate := true
-		sliceToCheck := row[firstCellIdx : lastCellIdx+1]
-		for _, cell := range sliceToCheck {
-			if cell == "" {
-				isCandidate = false
-				break
-			}
-		}
-
-		if !isCandidate {
-			continue
-		}
-
-		// This is a candidate, check if it's the best one so far
-		cellCount := len(sliceToCheck)
-		if cellCount > maxCells {
-			maxCells = cellCount
+		if nonEmptyCount > maxCells {
+			maxCells = nonEmptyCount
 			headerRow = row
 			headerRowNum = i + 1 // 1-based index
 		}
 	}
 
-	if headerRowNum == 0 {
+	if maxCells <= 0 {
 		return nil, 0, nil // No suitable header found
 	}
 
@@ -82,7 +52,7 @@ func findHeaderRow(f *excelize.File, sheetName string) ([]string, int, error) {
 var diffCmd = &cobra.Command{
 	Use:   "diff [file1] [file2]",
 	Short: "Show the difference in sheet names and header row content between two excel files",
-	Long:  `Show the difference in sheet names and header row content between two excel files. This command compares header columns by their content, accounting for additions and deletions. The header row is identified by scanning the first 100 rows. Empty cells in header rows are ignored.`,
+	Long:  `Show the difference in sheet names and header row content between two excel files. This command compares header columns by their content, accounting for additions and deletions. The header row is identified by scanning the first 100 rows. Empty cells in header rows are ignored. It also compares data rows cell by cell for columns with matching headers.`,
 	Args:  cobra.ExactArgs(2),
 	Run: func(cmd *cobra.Command, args []string) {
 		file1Path := args[0]
@@ -244,6 +214,109 @@ var diffCmd = &cobra.Command{
 						fmt.Printf("    - %s\n", s)
 					}
 				}
+				fmt.Println()
+			}
+
+			// Row-by-row comparison
+			allRows1, err := f1.GetRows(sheet)
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "Error reading all rows from sheet %s in %s: %v\n", sheet, file1Path, err)
+				continue
+			}
+			allRows2, err := f2.GetRows(sheet)
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "Error reading all rows from sheet %s in %s: %v\n", sheet, file2Path, err)
+				continue
+			}
+
+			// Map header names to their column indices for efficient lookup
+			header1Indices := make(map[string]int)
+			for i, h := range row1 {
+				if h != "" {
+					// In case of duplicate headers, prefer the first one
+					if _, exists := header1Indices[h]; !exists {
+						header1Indices[h] = i
+					}
+				}
+			}
+			header2Indices := make(map[string]int)
+			for i, h := range row2 {
+				if h != "" {
+					if _, exists := header2Indices[h]; !exists {
+						header2Indices[h] = i
+					}
+				}
+			}
+
+			// Identify common headers
+			commonHeaders := make(map[string]struct{})
+			for h := range header1Indices {
+				if _, ok := header2Indices[h]; ok {
+					commonHeaders[h] = struct{}{}
+				}
+			}
+
+			// Compare data rows
+			maxRows := len(allRows1)
+			if len(allRows2) > maxRows {
+				maxRows = len(allRows2)
+			}
+
+			rowContentDiff := false
+			for i := 0; i < maxRows; i++ {
+				physicalRowNum := i + 1
+
+				// Skip header rows
+				if (rowNum1 > 0 && physicalRowNum == rowNum1) || (rowNum2 > 0 && physicalRowNum == rowNum2) {
+					continue
+				}
+
+				var currentRow1, currentRow2 []string
+				if i < len(allRows1) {
+					currentRow1 = allRows1[i]
+				}
+				if i < len(allRows2) {
+					currentRow2 = allRows2[i]
+				}
+
+				rowHasDiff := false
+				diffs := []string{}
+
+				for hName := range commonHeaders {
+					idx1, ok1 := header1Indices[hName]
+					idx2, ok2 := header2Indices[hName]
+					if !ok1 || !ok2 {
+						continue
+					}
+
+					val1 := ""
+					if idx1 < len(currentRow1) {
+						val1 = currentRow1[idx1]
+					}
+					val2 := ""
+					if idx2 < len(currentRow2) {
+						val2 = currentRow2[idx2]
+					}
+
+					if val1 != val2 {
+						rowHasDiff = true
+						diffs = append(diffs, fmt.Sprintf("    - Col '%s': '%s' vs '%s'", hName, val1, val2))
+					}
+				}
+
+				if rowHasDiff {
+					if !rowContentDiff {
+						fmt.Printf("Sheet '%s': Found differences in row content:\n", sheet)
+						rowContentDiff = true
+						contentDiff = true // Set global flag
+					}
+					fmt.Printf("  - Row %d:\n", physicalRowNum)
+					for _, d := range diffs {
+						fmt.Println(d)
+					}
+				}
+			}
+			if rowContentDiff {
 				fmt.Println()
 			}
 		}
