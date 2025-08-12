@@ -9,7 +9,8 @@ import (
 )
 
 // findHeaderRow scans the first 100 rows to find the header row.
-// The header row is defined as the row with the most non-empty cells.
+// A header row candidate has no empty cells between the first and last non-empty cell.
+// The header row is the candidate with the most cells.
 func findHeaderRow(f *excelize.File, sheetName string) ([]string, int, error) {
 	rows, err := f.GetRows(sheetName)
 	if err != nil {
@@ -27,22 +28,51 @@ func findHeaderRow(f *excelize.File, sheetName string) ([]string, int, error) {
 
 	for i := 0; i < numRowsToCheck; i++ {
 		row := rows[i]
+		if len(row) == 0 {
+			continue
+		}
 
-		nonEmptyCount := 0
-		for _, cell := range row {
+		firstCellIdx := -1
+		lastCellIdx := -1
+
+		// Find first and last non-empty cell indices
+		for j, cell := range row {
 			if cell != "" {
-				nonEmptyCount++
+				if firstCellIdx == -1 {
+					firstCellIdx = j
+				}
+				lastCellIdx = j
 			}
 		}
 
-		if nonEmptyCount > maxCells {
-			maxCells = nonEmptyCount
+		if firstCellIdx == -1 { // Row is effectively empty
+			continue
+		}
+
+		// Check for empty cells between first and last non-empty cells
+		isCandidate := true
+		sliceToCheck := row[firstCellIdx : lastCellIdx+1]
+		for _, cell := range sliceToCheck {
+			if cell == "" {
+				isCandidate = false
+				break
+			}
+		}
+
+		if !isCandidate {
+			continue
+		}
+
+		// This is a candidate, check if it's the best one so far
+		cellCount := len(sliceToCheck)
+		if cellCount > maxCells {
+			maxCells = cellCount
 			headerRow = row
 			headerRowNum = i + 1 // 1-based index
 		}
 	}
 
-	if maxCells <= 0 {
+	if headerRowNum == 0 {
 		return nil, 0, nil // No suitable header found
 	}
 
