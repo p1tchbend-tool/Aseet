@@ -221,7 +221,6 @@ var diffCmd = &cobra.Command{
 					}
 				}
 				fmt.Println()
-				continue // Headers differ, move to next sheet
 			}
 
 			// Headers are identical, compare data rows
