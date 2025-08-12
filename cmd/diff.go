@@ -82,7 +82,7 @@ func findHeaderRow(f *excelize.File, sheetName string) ([]string, int, error) {
 var diffCmd = &cobra.Command{
 	Use:   "diff [file1] [file2]",
 	Short: "Show the difference in sheet names and header row content between two excel files",
-	Long:  `Show the difference in sheet names and the content of the header row of common sheets between two excel files. The header row is identified by scanning the first 100 rows.`,
+	Long:  `Show the difference in sheet names and the content of the header row of common sheets between two excel files. The header row is identified by scanning the first 100 rows. Empty cells in header rows are ignored during comparison.`,
 	Args:  cobra.ExactArgs(2),
 	Run: func(cmd *cobra.Command, args []string) {
 		file1Path := args[0]
@@ -185,6 +185,32 @@ var diffCmd = &cobra.Command{
 				continue
 			}
 
+			// Filter out empty cells for comparison
+			var r1NonEmpty []string
+			for _, cell := range row1 {
+				if cell != "" {
+					r1NonEmpty = append(r1NonEmpty, cell)
+				}
+			}
+			var r2NonEmpty []string
+			for _, cell := range row2 {
+				if cell != "" {
+					r2NonEmpty = append(r2NonEmpty, cell)
+				}
+			}
+
+			hasContentDiff := false
+			if len(r1NonEmpty) != len(r2NonEmpty) {
+				hasContentDiff = true
+			} else {
+				for i := range r1NonEmpty {
+					if r1NonEmpty[i] != r2NonEmpty[i] {
+						hasContentDiff = true
+						break
+					}
+				}
+			}
+
 			maxLen := len(row1)
 			if len(row2) > maxLen {
 				maxLen = len(row2)
@@ -193,14 +219,6 @@ var diffCmd = &cobra.Command{
 			copy(r1, row1)
 			r2 := make([]string, maxLen)
 			copy(r2, row2)
-
-			hasContentDiff := false
-			for i := 0; i < maxLen; i++ {
-				if r1[i] != r2[i] {
-					hasContentDiff = true
-					break
-				}
-			}
 
 			if hasContentDiff {
 				contentDiff = true
