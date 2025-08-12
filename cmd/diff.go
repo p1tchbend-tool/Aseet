@@ -8,7 +8,7 @@ import (
 	"github.com/xuri/excelize/v2"
 )
 
-// findHeaderRow scans the first 10 rows to find the header row.
+// findHeaderRow scans the first 100 rows to find the header row.
 // A header row candidate has no empty cells between the first and last non-empty cell.
 // The header row is the candidate with the most non-empty cells.
 func findHeaderRow(f *excelize.File, sheetName string) ([]string, int, error) {
@@ -21,7 +21,7 @@ func findHeaderRow(f *excelize.File, sheetName string) ([]string, int, error) {
 	headerRowNum := 0
 	maxCells := -1
 
-	numRowsToCheck := 10
+	numRowsToCheck := 100
 	if len(rows) < numRowsToCheck {
 		numRowsToCheck = len(rows)
 	}
@@ -82,7 +82,7 @@ func findHeaderRow(f *excelize.File, sheetName string) ([]string, int, error) {
 var diffCmd = &cobra.Command{
 	Use:   "diff [file1] [file2]",
 	Short: "Show the difference in sheet names and header row content between two excel files",
-	Long:  `Show the difference in sheet names and the content of the header row of common sheets between two excel files. The header row is identified by scanning the first 10 rows.`,
+	Long:  `Show the difference in sheet names and the content of the header row of common sheets between two excel files. The header row is identified by scanning the first 100 rows.`,
 	Args:  cobra.ExactArgs(2),
 	Run: func(cmd *cobra.Command, args []string) {
 		file1Path := args[0]
