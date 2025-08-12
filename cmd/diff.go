@@ -82,7 +82,7 @@ func findHeaderRow(f *excelize.File, sheetName string) ([]string, int, error) {
 var diffCmd = &cobra.Command{
 	Use:   "diff [file1] [file2]",
 	Short: "Show the difference in sheet names and header row content between two excel files",
-	Long:  `Show the difference in sheet names and the content of the header row of common sheets between two excel files. The header row is identified by scanning the first 100 rows. Empty cells in header rows are ignored during comparison.`,
+	Long:  `Show the difference in sheet names and header row content between two excel files. This command compares header columns by their content, accounting for additions and deletions. The header row is identified by scanning the first 100 rows. Empty cells in header rows are ignored.`,
 	Args:  cobra.ExactArgs(2),
 	Run: func(cmd *cobra.Command, args []string) {
 		file1Path := args[0]
@@ -199,35 +199,49 @@ var diffCmd = &cobra.Command{
 				}
 			}
 
-			hasContentDiff := false
-			if len(r1NonEmpty) != len(r2NonEmpty) {
-				hasContentDiff = true
-			} else {
-				for i := range r1NonEmpty {
-					if r1NonEmpty[i] != r2NonEmpty[i] {
-						hasContentDiff = true
-						break
+			map1 := make(map[string]int)
+			for _, s := range r1NonEmpty {
+				map1[s]++
+			}
+
+			map2 := make(map[string]int)
+			for _, s := range r2NonEmpty {
+				map2[s]++
+			}
+
+			var onlyInFile1, onlyInFile2 []string
+
+			for val, count1 := range map1 {
+				count2 := map2[val]
+				if count1 > count2 {
+					for i := 0; i < count1-count2; i++ {
+						onlyInFile1 = append(onlyInFile1, val)
 					}
 				}
 			}
 
-			maxLen := len(row1)
-			if len(row2) > maxLen {
-				maxLen = len(row2)
+			for val, count2 := range map2 {
+				count1 := map1[val]
+				if count2 > count1 {
+					for i := 0; i < count2-count1; i++ {
+						onlyInFile2 = append(onlyInFile2, val)
+					}
+				}
 			}
-			r1 := make([]string, maxLen)
-			copy(r1, row1)
-			r2 := make([]string, maxLen)
-			copy(r2, row2)
 
-			if hasContentDiff {
+			if len(onlyInFile1) > 0 || len(onlyInFile2) > 0 {
 				contentDiff = true
 				fmt.Printf("Sheet '%s': Header row content mismatch. Comparing %s (Row %d) and %s (Row %d):\n", sheet, file1Path, rowNum1, file2Path, rowNum2)
-
-				for i := 0; i < maxLen; i++ {
-					if r1[i] != r2[i] {
-						colName, _ := excelize.ColumnNumberToName(i + 1)
-						fmt.Printf("  - Col %s: '%s' vs '%s'\n", colName, r1[i], r2[i])
+				if len(onlyInFile1) > 0 {
+					fmt.Printf("  Columns only in %s:\n", file1Path)
+					for _, s := range onlyInFile1 {
+						fmt.Printf("    - %s\n", s)
+					}
+				}
+				if len(onlyInFile2) > 0 {
+					fmt.Printf("  Columns only in %s:\n", file2Path)
+					for _, s := range onlyInFile2 {
+						fmt.Printf("    - %s\n", s)
 					}
 				}
 				fmt.Println()
