@@ -8,40 +8,55 @@ import (
 	"github.com/xuri/excelize/v2"
 )
 
-// getSheetNames opens an excel file and returns a list of its sheet names.
-func getSheetNames(filePath string) ([]string, error) {
-	f, err := excelize.OpenFile(filePath)
+// getFirstNonEmptyRow finds the first row with data in a sheet.
+func getFirstNonEmptyRow(f *excelize.File, sheetName string) ([]string, int, error) {
+	rows, err := f.GetRows(sheetName)
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
-	defer func() {
-		if err := f.Close(); err != nil {
-			fmt.Fprintf(os.Stderr, "Error closing file %s: %v\n", filePath, err)
+	for i, row := range rows {
+		for _, cell := range row {
+			if cell != "" {
+				return row, i + 1, nil // Return row data and 1-based row index
+			}
 		}
-	}()
-	return f.GetSheetList(), nil
+	}
+	return nil, 0, nil // No content found
 }
 
 var diffCmd = &cobra.Command{
 	Use:   "diff [file1] [file2]",
-	Short: "Show the difference in sheet names between two excel files",
-	Long:  `Show the difference in sheet names between two excel files.`,
+	Short: "Show the difference in sheet names and first rows between two excel files",
+	Long:  `Show the difference in sheet names and the first non-empty row of common sheets between two excel files.`,
 	Args:  cobra.ExactArgs(2),
 	Run: func(cmd *cobra.Command, args []string) {
 		file1Path := args[0]
 		file2Path := args[1]
 
-		sheets1, err := getSheetNames(file1Path)
+		f1, err := excelize.OpenFile(file1Path)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "Error processing file %s: %v\n", file1Path, err)
+			fmt.Fprintf(os.Stderr, "Error opening file %s: %v\n", file1Path, err)
 			os.Exit(1)
 		}
+		defer func() {
+			if err := f1.Close(); err != nil {
+				fmt.Fprintf(os.Stderr, "Error closing file %s: %v\n", file1Path, err)
+			}
+		}()
 
-		sheets2, err := getSheetNames(file2Path)
+		f2, err := excelize.OpenFile(file2Path)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "Error processing file %s: %v\n", file2Path, err)
+			fmt.Fprintf(os.Stderr, "Error opening file %s: %v\n", file2Path, err)
 			os.Exit(1)
 		}
+		defer func() {
+			if err := f2.Close(); err != nil {
+				fmt.Fprintf(os.Stderr, "Error closing file %s: %v\n", file2Path, err)
+			}
+		}()
+
+		sheets1 := f1.GetSheetList()
+		sheets2 := f2.GetSheetList()
 
 		map1 := make(map[string]bool)
 		for _, s := range sheets1 {
@@ -67,9 +82,9 @@ var diffCmd = &cobra.Command{
 			}
 		}
 
-		hasDiff := false
+		sheetNameDiff := false
 		if len(onlyIn1) > 0 {
-			hasDiff = true
+			sheetNameDiff = true
 			fmt.Printf("Sheets only in %s:\n", file1Path)
 			for _, s := range onlyIn1 {
 				fmt.Printf("- %s\n", s)
@@ -78,7 +93,7 @@ var diffCmd = &cobra.Command{
 		}
 
 		if len(onlyIn2) > 0 {
-			hasDiff = true
+			sheetNameDiff = true
 			fmt.Printf("Sheets only in %s:\n", file2Path)
 			for _, s := range onlyIn2 {
 				fmt.Printf("- %s\n", s)
@@ -86,8 +101,69 @@ var diffCmd = &cobra.Command{
 			fmt.Println()
 		}
 
-		if !hasDiff {
-			fmt.Println("The sheet names are identical in both files.")
+		commonSheets := []string{}
+		for _, s := range sheets1 {
+			if map2[s] {
+				commonSheets = append(commonSheets, s)
+			}
+		}
+
+		contentDiff := false
+		if len(commonSheets) > 0 && (len(onlyIn1) > 0 || len(onlyIn2) > 0) {
+			fmt.Println("--- Comparing common sheets ---")
+		}
+
+		for _, sheet := range commonSheets {
+			row1, rowNum1, err1 := getFirstNonEmptyRow(f1, sheet)
+			if err1 != nil {
+				fmt.Fprintf(os.Stderr, "Error reading sheet %s from %s: %v\n", sheet, file1Path, err1)
+				continue
+			}
+
+			row2, rowNum2, err2 := getFirstNonEmptyRow(f2, sheet)
+			if err2 != nil {
+				fmt.Fprintf(os.Stderr, "Error reading sheet %s from %s: %v\n", sheet, file2Path, err2)
+				continue
+			}
+
+			if row1 == nil && row2 == nil {
+				continue
+			}
+
+			if rowNum1 != rowNum2 {
+				contentDiff = true
+				fmt.Printf("Sheet '%s': First non-empty row mismatch. %s: Row %d, %s: Row %d\n\n", sheet, file1Path, rowNum1, file2Path, rowNum2)
+				continue
+			}
+
+			maxLen := len(row1)
+			if len(row2) > maxLen {
+				maxLen = len(row2)
+			}
+			r1 := make([]string, maxLen)
+			copy(r1, row1)
+			r2 := make([]string, maxLen)
+			copy(r2, row2)
+
+			sheetHasDiffs := false
+			for i := 0; i < maxLen; i++ {
+				if r1[i] != r2[i] {
+					if !sheetHasDiffs {
+						fmt.Printf("Differences in Sheet '%s' (Row %d):\n", sheet, rowNum1)
+						sheetHasDiffs = true
+						contentDiff = true
+					}
+					colName, _ := excelize.ColumnNumberToName(i + 1)
+					fmt.Printf("  - Col %s: '%s' vs '%s'\n", colName, r1[i], r2[i])
+				}
+			}
+			if sheetHasDiffs {
+				fmt.Println()
+			}
+		}
+
+		if !sheetNameDiff && !contentDiff {
+			fmt.Println("The sheet names and first non-empty rows are identical in both files.")
 		}
 	},
 }
