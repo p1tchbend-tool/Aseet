@@ -8,26 +8,81 @@ import (
 	"github.com/xuri/excelize/v2"
 )
 
-// getFirstNonEmptyRow finds the first row with data in a sheet.
-func getFirstNonEmptyRow(f *excelize.File, sheetName string) ([]string, int, error) {
+// findHeaderRow scans the first 10 rows to find the header row.
+// A header row candidate has no empty cells between the first and last non-empty cell.
+// The header row is the candidate with the most non-empty cells.
+func findHeaderRow(f *excelize.File, sheetName string) ([]string, int, error) {
 	rows, err := f.GetRows(sheetName)
 	if err != nil {
 		return nil, 0, err
 	}
-	for i, row := range rows {
-		for _, cell := range row {
+
+	var headerRow []string
+	headerRowNum := 0
+	maxCells := -1
+
+	numRowsToCheck := 10
+	if len(rows) < numRowsToCheck {
+		numRowsToCheck = len(rows)
+	}
+
+	for i := 0; i < numRowsToCheck; i++ {
+		row := rows[i]
+		if len(row) == 0 {
+			continue
+		}
+
+		firstCellIdx := -1
+		lastCellIdx := -1
+
+		// Find first and last non-empty cell indices
+		for j, cell := range row {
 			if cell != "" {
-				return row, i + 1, nil // Return row data and 1-based row index
+				if firstCellIdx == -1 {
+					firstCellIdx = j
+				}
+				lastCellIdx = j
 			}
 		}
+
+		if firstCellIdx == -1 { // Row is effectively empty
+			continue
+		}
+
+		// Check for empty cells between first and last non-empty cells
+		isCandidate := true
+		sliceToCheck := row[firstCellIdx : lastCellIdx+1]
+		for _, cell := range sliceToCheck {
+			if cell == "" {
+				isCandidate = false
+				break
+			}
+		}
+
+		if !isCandidate {
+			continue
+		}
+
+		// This is a candidate, check if it's the best one so far
+		cellCount := len(sliceToCheck)
+		if cellCount > maxCells {
+			maxCells = cellCount
+			headerRow = row
+			headerRowNum = i + 1 // 1-based index
+		}
 	}
-	return nil, 0, nil // No content found
+
+	if headerRowNum == 0 {
+		return nil, 0, nil // No suitable header found
+	}
+
+	return headerRow, headerRowNum, nil
 }
 
 var diffCmd = &cobra.Command{
 	Use:   "diff [file1] [file2]",
-	Short: "Show the difference in sheet names and first row content between two excel files",
-	Long:  `Show the difference in sheet names and the content of the first non-empty row of common sheets between two excel files.`,
+	Short: "Show the difference in sheet names and header row content between two excel files",
+	Long:  `Show the difference in sheet names and the content of the header row of common sheets between two excel files. The header row is identified by scanning the first 10 rows.`,
 	Args:  cobra.ExactArgs(2),
 	Run: func(cmd *cobra.Command, args []string) {
 		file1Path := args[0]
@@ -114,13 +169,13 @@ var diffCmd = &cobra.Command{
 		}
 
 		for _, sheet := range commonSheets {
-			row1, rowNum1, err1 := getFirstNonEmptyRow(f1, sheet)
+			row1, rowNum1, err1 := findHeaderRow(f1, sheet)
 			if err1 != nil {
 				fmt.Fprintf(os.Stderr, "Error reading sheet %s from %s: %v\n", sheet, file1Path, err1)
 				continue
 			}
 
-			row2, rowNum2, err2 := getFirstNonEmptyRow(f2, sheet)
+			row2, rowNum2, err2 := findHeaderRow(f2, sheet)
 			if err2 != nil {
 				fmt.Fprintf(os.Stderr, "Error reading sheet %s from %s: %v\n", sheet, file2Path, err2)
 				continue
@@ -149,11 +204,7 @@ var diffCmd = &cobra.Command{
 
 			if hasContentDiff {
 				contentDiff = true
-				if rowNum1 != rowNum2 {
-					fmt.Printf("Sheet '%s': First non-empty row content mismatch. Comparing %s (Row %d) and %s (Row %d):\n", sheet, file1Path, rowNum1, file2Path, rowNum2)
-				} else {
-					fmt.Printf("Sheet '%s': First non-empty row content mismatch (Row %d):\n", sheet, rowNum1)
-				}
+				fmt.Printf("Sheet '%s': Header row content mismatch. Comparing %s (Row %d) and %s (Row %d):\n", sheet, file1Path, rowNum1, file2Path, rowNum2)
 
 				for i := 0; i < maxLen; i++ {
 					if r1[i] != r2[i] {
@@ -166,7 +217,7 @@ var diffCmd = &cobra.Command{
 		}
 
 		if !sheetNameDiff && !contentDiff {
-			fmt.Println("The sheet names and first non-empty rows are identical in both files.")
+			fmt.Println("The sheet names and header rows are identical in both files.")
 		}
 	},
 }
