@@ -26,8 +26,8 @@ func getFirstNonEmptyRow(f *excelize.File, sheetName string) ([]string, int, err
 
 var diffCmd = &cobra.Command{
 	Use:   "diff [file1] [file2]",
-	Short: "Show the difference in sheet names and first rows between two excel files",
-	Long:  `Show the difference in sheet names and the first non-empty row of common sheets between two excel files.`,
+	Short: "Show the difference in sheet names and first row content between two excel files",
+	Long:  `Show the difference in sheet names and the content of the first non-empty row of common sheets between two excel files.`,
 	Args:  cobra.ExactArgs(2),
 	Run: func(cmd *cobra.Command, args []string) {
 		file1Path := args[0]
@@ -147,20 +147,18 @@ var diffCmd = &cobra.Command{
 				}
 			}
 
-			if rowNum1 != rowNum2 || hasContentDiff {
+			if hasContentDiff {
 				contentDiff = true
 				if rowNum1 != rowNum2 {
-					fmt.Printf("Sheet '%s': First non-empty row mismatch. %s: Row %d, %s: Row %d\n", sheet, file1Path, rowNum1, file2Path, rowNum2)
+					fmt.Printf("Sheet '%s': First non-empty row content mismatch. Comparing %s (Row %d) and %s (Row %d):\n", sheet, file1Path, rowNum1, file2Path, rowNum2)
 				} else {
-					fmt.Printf("Sheet '%s': First non-empty row mismatch (Row %d):\n", sheet, rowNum1)
+					fmt.Printf("Sheet '%s': First non-empty row content mismatch (Row %d):\n", sheet, rowNum1)
 				}
 
-				if hasContentDiff {
-					for i := 0; i < maxLen; i++ {
-						if r1[i] != r2[i] {
-							colName, _ := excelize.ColumnNumberToName(i + 1)
-							fmt.Printf("  - Col %s: '%s' vs '%s'\n", colName, r1[i], r2[i])
-						}
+				for i := 0; i < maxLen; i++ {
+					if r1[i] != r2[i] {
+						colName, _ := excelize.ColumnNumberToName(i + 1)
+						fmt.Printf("  - Col %s: '%s' vs '%s'\n", colName, r1[i], r2[i])
 					}
 				}
 				fmt.Println()
