@@ -84,7 +84,7 @@ func findHeaderRow(f *excelize.File, sheetName string) ([]string, int, error) {
 var diffCmd = &cobra.Command{
 	Use:   "diff [file1] [file2]",
 	Short: "Show the difference in sheet names and header row content between two excel files",
-	Long:  `Show the difference in sheet names and header row content between two excel files. This command compares header columns by their content, accounting for additions and deletions. The header row is identified by scanning the first 100 rows. Empty cells in header rows are ignored. It also compares data rows cell by cell for columns with matching headers.`,
+	Long:  `Show the difference in sheet names and header row content between two excel files. This command compares header columns by their content, accounting for additions and deletions. The header row is identified by scanning the first 100 rows. Empty cells in header rows are ignored. It also compares data rows cell by cell for columns with matching headers, prioritizing formulas over calculated values.`,
 	Args:  cobra.ExactArgs(2),
 	Run: func(cmd *cobra.Command, args []string) {
 		file1Path := args[0]
@@ -304,14 +304,6 @@ var diffCmd = &cobra.Command{
 					continue
 				}
 
-				var currentRow1, currentRow2 []string
-				if i < len(allRows1) {
-					currentRow1 = allRows1[i]
-				}
-				if i < len(allRows2) {
-					currentRow2 = allRows2[i]
-				}
-
 				rowHasDiff := false
 				var row1Vals, row2Vals []string
 
@@ -319,13 +311,16 @@ var diffCmd = &cobra.Command{
 					idx1 := header1Indices[hName]
 					idx2 := header2Indices[hName]
 
-					val1 := ""
-					if idx1 < len(currentRow1) {
-						val1 = currentRow1[idx1]
+					cellName1, _ := excelize.CoordinatesToCellName(idx1+1, physicalRowNum)
+					val1, _ := f1.GetCellFormula(sheet, cellName1)
+					if val1 == "" {
+						val1, _ = f1.GetCellValue(sheet, cellName1)
 					}
-					val2 := ""
-					if idx2 < len(currentRow2) {
-						val2 = currentRow2[idx2]
+
+					cellName2, _ := excelize.CoordinatesToCellName(idx2+1, physicalRowNum)
+					val2, _ := f2.GetCellFormula(sheet, cellName2)
+					if val2 == "" {
+						val2, _ = f2.GetCellValue(sheet, cellName2)
 					}
 
 					if val1 != val2 {
