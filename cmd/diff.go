@@ -130,12 +130,6 @@ var diffCmd = &cobra.Command{
 				continue
 			}
 
-			if rowNum1 != rowNum2 {
-				contentDiff = true
-				fmt.Printf("Sheet '%s': First non-empty row mismatch. %s: Row %d, %s: Row %d\n\n", sheet, file1Path, rowNum1, file2Path, rowNum2)
-				continue
-			}
-
 			maxLen := len(row1)
 			if len(row2) > maxLen {
 				maxLen = len(row2)
@@ -145,19 +139,30 @@ var diffCmd = &cobra.Command{
 			r2 := make([]string, maxLen)
 			copy(r2, row2)
 
-			sheetHasDiffs := false
+			hasContentDiff := false
 			for i := 0; i < maxLen; i++ {
 				if r1[i] != r2[i] {
-					if !sheetHasDiffs {
-						fmt.Printf("Differences in Sheet '%s' (Row %d):\n", sheet, rowNum1)
-						sheetHasDiffs = true
-						contentDiff = true
-					}
-					colName, _ := excelize.ColumnNumberToName(i + 1)
-					fmt.Printf("  - Col %s: '%s' vs '%s'\n", colName, r1[i], r2[i])
+					hasContentDiff = true
+					break
 				}
 			}
-			if sheetHasDiffs {
+
+			if rowNum1 != rowNum2 || hasContentDiff {
+				contentDiff = true
+				if rowNum1 != rowNum2 {
+					fmt.Printf("Sheet '%s': First non-empty row mismatch. %s: Row %d, %s: Row %d\n", sheet, file1Path, rowNum1, file2Path, rowNum2)
+				} else {
+					fmt.Printf("Differences in Sheet '%s' (Row %d):\n", sheet, rowNum1)
+				}
+
+				if hasContentDiff {
+					for i := 0; i < maxLen; i++ {
+						if r1[i] != r2[i] {
+							colName, _ := excelize.ColumnNumberToName(i + 1)
+							fmt.Printf("  - Col %s: '%s' vs '%s'\n", colName, r1[i], r2[i])
+						}
+					}
+				}
 				fmt.Println()
 			}
 		}
