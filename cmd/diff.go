@@ -152,7 +152,7 @@ var diffCmd = &cobra.Command{
 				if rowNum1 != rowNum2 {
 					fmt.Printf("Sheet '%s': First non-empty row mismatch. %s: Row %d, %s: Row %d\n", sheet, file1Path, rowNum1, file2Path, rowNum2)
 				} else {
-					fmt.Printf("Differences in Sheet '%s' (Row %d):\n", sheet, rowNum1)
+					fmt.Printf("Sheet '%s': First non-empty row mismatch (Row %d):\n", sheet, rowNum1)
 				}
 
 				if hasContentDiff {
