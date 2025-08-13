@@ -10,6 +10,7 @@ import (
 )
 
 var all bool
+var sheetName string
 
 var catCmd = &cobra.Command{
 	Use:   "cat [file]",
@@ -30,7 +31,16 @@ var catCmd = &cobra.Command{
 			}
 		}()
 
-		if all {
+		if sheetName != "" {
+			rows, err := f.GetRows(sheetName)
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "シート %s の行取得中にエラーが発生しました: %v\n", sheetName, err)
+				os.Exit(1)
+			}
+			for _, row := range rows {
+				fmt.Println(strings.Join(row, ","))
+			}
+		} else if all {
 			for _, sheet := range f.GetSheetList() {
 				fmt.Println(sheet)
 				rows, err := f.GetRows(sheet)
@@ -53,4 +63,5 @@ var catCmd = &cobra.Command{
 func init() {
 	rootCmd.AddCommand(catCmd)
 	catCmd.Flags().BoolVarP(&all, "all", "a", false, "すべてのシートのセルの値をカンマ区切りで表示します。")
+	catCmd.Flags().StringVarP(&sheetName, "name", "n", "", "指定したシートのセルの値をカンマ区切りで表示します。")
 }
