@@ -32,6 +32,7 @@ var catCmd = &cobra.Command{
 
 		if all {
 			for _, sheet := range f.GetSheetList() {
+				fmt.Println(sheet)
 				rows, err := f.GetRows(sheet)
 				if err != nil {
 					fmt.Fprintf(os.Stderr, "シート %s の行取得中にエラーが発生しました: %v\n", sheet, err)
