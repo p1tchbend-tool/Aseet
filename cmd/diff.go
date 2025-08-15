@@ -3,6 +3,7 @@ package cmd
 import (
 	"fmt"
 	"os"
+	"os/exec"
 	"sort"
 	"strings"
 
@@ -80,6 +81,8 @@ func findHeaderRow(f *excelize.File, sheetName string) ([]string, int, error) {
 
 	return headerRow, headerRowNum, nil
 }
+
+var openFiles bool
 
 var diffCmd = &cobra.Command{
 	Use:   "diff [file1] [file2]",
@@ -313,9 +316,15 @@ var diffCmd = &cobra.Command{
 				fmt.Println()
 			}
 		}
+
+		if openFiles {
+			exec.Command("cmd", "/C", "start", file1Path).Start()
+			exec.Command("cmd", "/C", "start", file2Path).Start()
+		}
 	},
 }
 
 func init() {
 	rootCmd.AddCommand(diffCmd)
+	diffCmd.Flags().BoolVarP(&openFiles, "open", "o", false, "最後に2つのファイルを関連付けられたアプリケーションで開きます。")
 }
