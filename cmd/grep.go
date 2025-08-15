@@ -36,7 +36,7 @@ var grepCmd = &cobra.Command{
 				continue
 			}
 
-			for _, row := range rows {
+			for i, row := range rows {
 				match := false
 				for _, cell := range row {
 					if strings.Contains(cell, pattern) {
@@ -45,7 +45,7 @@ var grepCmd = &cobra.Command{
 					}
 				}
 				if match {
-					fmt.Println(strings.Join(row, ","))
+					fmt.Printf("%s:%d:%s\n", sheetName, i+1, strings.Join(row, ","))
 				}
 			}
 		}
