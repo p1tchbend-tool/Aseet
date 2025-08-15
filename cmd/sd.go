@@ -135,7 +135,7 @@ var sdCmd = &cobra.Command{
 					}
 
 					if rowModified {
-						fmt.Printf("[Replacement completed] %s: %s: Row %d\n", filePath, sheetName, r+1)
+						fmt.Printf("[Replaced] %s: %s: Row %d\n", filePath, sheetName, r+1)
 					}
 				}
 			}
