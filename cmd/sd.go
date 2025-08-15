@@ -38,9 +38,15 @@ var sdCmd = &cobra.Command{
 			}
 
 			for r, row := range rows {
+				rowModified := false
+				newRowValues := make([]string, len(row))
+				copy(newRowValues, row)
+
 				for c, cellValue := range row {
 					if strings.Contains(cellValue, search) {
+						rowModified = true
 						newCellValue := strings.ReplaceAll(cellValue, search, replace)
+						newRowValues[c] = newCellValue
 						cellName, err := excelize.CoordinatesToCellName(c+1, r+1)
 						if err != nil {
 							fmt.Fprintf(os.Stderr, "Error converting coordinates to cell name for sheet %s, row %d, col %d: %v\n", sheetName, r+1, c+1, err)
@@ -51,6 +57,10 @@ var sdCmd = &cobra.Command{
 							continue
 						}
 					}
+				}
+
+				if rowModified {
+					fmt.Printf("%s:%s:%d:%s\n", filePath, sheetName, r+1, strings.Join(newRowValues, ","))
 				}
 			}
 		}
