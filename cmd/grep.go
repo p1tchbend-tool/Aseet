@@ -10,6 +10,8 @@ import (
 	"github.com/xuri/excelize/v2"
 )
 
+var recursive bool
+
 var grepCmd = &cobra.Command{
 	Use:   "grep [pattern] [file or directory]",
 	Short: "Excelファイルまたはディレクトリから指定した文字列を含む行を検索します。",
@@ -27,21 +29,37 @@ var grepCmd = &cobra.Command{
 
 		var filesToProcess []string
 		if info.IsDir() {
-			err := filepath.Walk(path, func(p string, info os.FileInfo, err error) error {
+			if recursive {
+				err := filepath.Walk(path, func(p string, info os.FileInfo, err error) error {
+					if err != nil {
+						return err
+					}
+					if !info.IsDir() {
+						ext := strings.ToLower(filepath.Ext(p))
+						if ext == ".xls" || ext == ".xlsx" || ext == ".xlsm" || ext == ".ods" {
+							filesToProcess = append(filesToProcess, p)
+						}
+					}
+					return nil
+				})
 				if err != nil {
-					return err
+					fmt.Fprintf(os.Stderr, "Error walking directory %s: %v\n", path, err)
+					os.Exit(1)
 				}
-				if !info.IsDir() {
-					ext := strings.ToLower(filepath.Ext(p))
-					if ext == ".xls" || ext == ".xlsx" || ext == ".xlsm" || ext == ".ods" {
-						filesToProcess = append(filesToProcess, p)
+			} else {
+				entries, err := os.ReadDir(path)
+				if err != nil {
+					fmt.Fprintf(os.Stderr, "Error reading directory %s: %v\n", path, err)
+					os.Exit(1)
+				}
+				for _, entry := range entries {
+					if !entry.IsDir() {
+						ext := strings.ToLower(filepath.Ext(entry.Name()))
+						if ext == ".xls" || ext == ".xlsx" || ext == ".xlsm" || ext == ".ods" {
+							filesToProcess = append(filesToProcess, filepath.Join(path, entry.Name()))
+						}
 					}
 				}
-				return nil
-			})
-			if err != nil {
-				fmt.Fprintf(os.Stderr, "Error walking directory %s: %v\n", path, err)
-				os.Exit(1)
 			}
 		} else {
 			filesToProcess = append(filesToProcess, path)
@@ -84,4 +102,5 @@ var grepCmd = &cobra.Command{
 
 func init() {
 	rootCmd.AddCommand(grepCmd)
+	grepCmd.Flags().BoolVarP(&recursive, "recursive", "r", false, "サブディレクトリまで再帰的に検索します。")
 }
