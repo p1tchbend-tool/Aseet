@@ -72,7 +72,6 @@ var catCmd = &cobra.Command{
 			}
 		} else if all {
 			for _, sheet := range f.GetSheetList() {
-				fmt.Println("")
 				fmt.Println("================================================================================")
 				fmt.Println(sheet)
 				fmt.Println("================================================================================")
