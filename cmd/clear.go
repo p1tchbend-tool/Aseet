@@ -26,10 +26,22 @@ var clearCmd = &cobra.Command{
 			return
 		}
 
-		err = os.RemoveAll(tempDir)
+		files, err := os.ReadDir(tempDir)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "一時ファイルの削除中にエラーが発生しました: %v\n", err)
+			fmt.Fprintf(os.Stderr, "一時ディレクトリの読み込み中にエラーが発生しました: %v\n", err)
 			os.Exit(1)
+		}
+
+		if len(files) == 0 {
+			fmt.Println("一時ファイルはありません。")
+			return
+		}
+
+		for _, file := range files {
+			filePath := filepath.Join(tempDir, file.Name())
+			if err := os.RemoveAll(filePath); err != nil {
+				fmt.Fprintf(os.Stderr, "ファイル '%s' の削除中にエラーが発生しました: %v\n", filePath, err)
+			}
 		}
 
 		fmt.Println("一時ファイルを削除しました。")
