@@ -13,6 +13,7 @@ import (
 
 var grepRecursive bool
 var grepIgnoreCase bool
+var grepFormula bool
 
 var grepCmd = &cobra.Command{
 	Use:   "grep [pattern] [file or directory]",
@@ -95,8 +96,19 @@ var grepCmd = &cobra.Command{
 
 				for i, row := range rows {
 					match := false
-					for _, cell := range row {
-						if re.MatchString(cell) {
+					for c, cell := range row {
+						searchTarget := cell
+						if grepFormula {
+							cellName, err := excelize.CoordinatesToCellName(c+1, i+1)
+							if err == nil {
+								formula, err := f.GetCellFormula(sheetName, cellName)
+								if err == nil && formula != "" {
+									searchTarget = formula
+								}
+							}
+						}
+
+						if re.MatchString(searchTarget) {
 							match = true
 							break
 						}
@@ -118,4 +130,5 @@ func init() {
 	rootCmd.AddCommand(grepCmd)
 	grepCmd.Flags().BoolVarP(&grepRecursive, "recursive", "r", false, "サブディレクトリまで再帰的に検索します。")
 	grepCmd.Flags().BoolVarP(&grepIgnoreCase, "ignore-case", "i", false, "検索時に大文字小文字を区別しません。")
+	grepCmd.Flags().BoolVarP(&grepFormula, "formula", "f", false, "セルに数式がある場合は数式を検索対象にします。")
 }
