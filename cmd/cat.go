@@ -21,20 +21,20 @@ func printSheetContents(f *excelize.File, sheetName string) error {
 			cellName, err := excelize.CoordinatesToCellName(c+1, r+1)
 			if err != nil {
 				// This is unlikely to happen. Fallback to original value from GetRows.
-				outputCells = append(outputCells, fmt.Sprintf("\"%s\"", originalValue))
+				outputCells = append(outputCells, fmt.Sprintf("\"%s\"", strings.ReplaceAll(originalValue, "\"", "\"\"")))
 				continue
 			}
 
 			formula, err := f.GetCellFormula(sheetName, cellName)
 			if err == nil && formula != "" {
-				outputCells = append(outputCells, fmt.Sprintf("\"%s\"", formula))
+				outputCells = append(outputCells, fmt.Sprintf("\"%s\"", strings.ReplaceAll(formula, "\"", "\"\"")))
 			} else {
 				value, err := f.GetCellValue(sheetName, cellName)
 				if err != nil {
 					// If GetCellValue fails, fallback to original value.
-					outputCells = append(outputCells, fmt.Sprintf("\"%s\"", originalValue))
+					outputCells = append(outputCells, fmt.Sprintf("\"%s\"", strings.ReplaceAll(originalValue, "\"", "\"\"")))
 				} else {
-					outputCells = append(outputCells, fmt.Sprintf("\"%s\"", value))
+					outputCells = append(outputCells, fmt.Sprintf("\"%s\"", strings.ReplaceAll(value, "\"", "\"\"")))
 				}
 			}
 		}
