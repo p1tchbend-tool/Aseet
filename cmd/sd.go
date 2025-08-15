@@ -116,14 +116,8 @@ var sdCmd = &cobra.Command{
 									fmt.Fprintf(os.Stderr, "Error setting cell formula for %s on sheet %s: %v\n", cellName, sheetName, err)
 									continue
 								}
-								// Update newRowValues with the new calculated value for printing
-								newValue, err := f.GetCellValue(sheetName, cellName)
-								if err != nil {
-									// Fallback to original value if we can't get the new one
-									newRowValues[c] = cellValue
-								} else {
-									newRowValues[c] = newValue
-								}
+
+								f.WorkBook.CalcPr.FullCalcOnLoad = true
 							}
 						} else {
 							// This cell does not have a formula, or we couldn't get it.
