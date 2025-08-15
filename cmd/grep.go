@@ -102,7 +102,7 @@ var grepCmd = &cobra.Command{
 						}
 					}
 					if match {
-						fmt.Printf("%s:%s:%d:%s\n", filePath, sheetName, i+1, strings.Join(row, ","))
+						fmt.Printf("%s: %s: Row %d: %s\n", filePath, sheetName, i+1, strings.Join(row, ","))
 					}
 				}
 			}
