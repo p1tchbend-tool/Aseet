@@ -6,7 +6,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"sort"/
+	"sort"
 	"strings"
 
 	"github.com/spf13/cobra"
