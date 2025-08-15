@@ -10,7 +10,7 @@ import (
 	"github.com/xuri/excelize/v2"
 )
 
-var recursive bool
+var grepRecursive bool
 
 var grepCmd = &cobra.Command{
 	Use:   "grep [pattern] [file or directory]",
@@ -29,7 +29,7 @@ var grepCmd = &cobra.Command{
 
 		var filesToProcess []string
 		if info.IsDir() {
-			if recursive {
+			if grepRecursive {
 				err := filepath.Walk(path, func(p string, info os.FileInfo, err error) error {
 					if err != nil {
 						return err
@@ -102,5 +102,5 @@ var grepCmd = &cobra.Command{
 
 func init() {
 	rootCmd.AddCommand(grepCmd)
-	grepCmd.Flags().BoolVarP(&recursive, "recursive", "r", false, "サブディレクトリまで再帰的に検索します。")
+	grepCmd.Flags().BoolVarP(&grepRecursive, "recursive", "r", false, "サブディレクトリまで再帰的に検索します。")
 }

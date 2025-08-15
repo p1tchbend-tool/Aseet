@@ -10,6 +10,8 @@ import (
 	"github.com/xuri/excelize/v2"
 )
 
+var sdRecursive bool
+
 var sdCmd = &cobra.Command{
 	Use:   "sd [search] [replace] [file or directory]",
 	Short: "Excelファイルまたはディレクトリ内の文字列を置換します。",
@@ -28,16 +30,35 @@ var sdCmd = &cobra.Command{
 
 		var filesToProcess []string
 		if info.IsDir() {
-			entries, err := os.ReadDir(path)
-			if err != nil {
-				fmt.Fprintf(os.Stderr, "Error reading directory %s: %v\n", path, err)
-				os.Exit(1)
-			}
-			for _, entry := range entries {
-				if !entry.IsDir() {
-					ext := strings.ToLower(filepath.Ext(entry.Name()))
-					if ext == ".xls" || ext == ".xlsx" || ext == ".xlsm" || ext == ".ods" {
-						filesToProcess = append(filesToProcess, filepath.Join(path, entry.Name()))
+			if sdRecursive {
+				err := filepath.Walk(path, func(p string, info os.FileInfo, err error) error {
+					if err != nil {
+						return err
+					}
+					if !info.IsDir() {
+						ext := strings.ToLower(filepath.Ext(p))
+						if ext == ".xls" || ext == ".xlsx" || ext == ".xlsm" || ext == ".ods" {
+							filesToProcess = append(filesToProcess, p)
+						}
+					}
+					return nil
+				})
+				if err != nil {
+					fmt.Fprintf(os.Stderr, "Error walking directory %s: %v\n", path, err)
+					os.Exit(1)
+				}
+			} else {
+				entries, err := os.ReadDir(path)
+				if err != nil {
+					fmt.Fprintf(os.Stderr, "Error reading directory %s: %v\n", path, err)
+					os.Exit(1)
+				}
+				for _, entry := range entries {
+					if !entry.IsDir() {
+						ext := strings.ToLower(filepath.Ext(entry.Name()))
+						if ext == ".xls" || ext == ".xlsx" || ext == ".xlsm" || ext == ".ods" {
+							filesToProcess = append(filesToProcess, filepath.Join(path, entry.Name()))
+						}
 					}
 				}
 			}
@@ -101,4 +122,5 @@ var sdCmd = &cobra.Command{
 
 func init() {
 	rootCmd.AddCommand(sdCmd)
+	sdCmd.Flags().BoolVarP(&sdRecursive, "recursive", "r", false, "サブディレクトリまで再帰的に処理します。")
 }
