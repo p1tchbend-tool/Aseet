@@ -25,13 +25,15 @@ var sdCmd = &cobra.Command{
 		path := args[2]
 
 		var re *regexp.Regexp
+		var err error
 		if sdIgnoreCase {
-			var err error
-			re, err = regexp.Compile("(?i)" + regexp.QuoteMeta(search))
-			if err != nil {
-				fmt.Fprintf(os.Stderr, "Error compiling regex: %v\n", err)
-				os.Exit(1)
-			}
+			re, err = regexp.Compile("(?i)" + search)
+		} else {
+			re, err = regexp.Compile(search)
+		}
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Error compiling regex: %v\n", err)
+			os.Exit(1)
 		}
 
 		info, err := os.Stat(path)
@@ -98,22 +100,9 @@ var sdCmd = &cobra.Command{
 					copy(newRowValues, row)
 
 					for c, cellValue := range row {
-						found := false
-						var newCellValue string
-						if sdIgnoreCase {
-							if re.MatchString(cellValue) {
-								found = true
-								newCellValue = re.ReplaceAllString(cellValue, replace)
-							}
-						} else {
-							if strings.Contains(cellValue, search) {
-								found = true
-								newCellValue = strings.ReplaceAll(cellValue, search, replace)
-							}
-						}
-
-						if found {
+						if re.MatchString(cellValue) {
 							rowModified = true
+							newCellValue := re.ReplaceAllString(cellValue, replace)
 							newRowValues[c] = newCellValue
 							cellName, err := excelize.CoordinatesToCellName(c+1, r+1)
 							if err != nil {
