@@ -11,6 +11,7 @@ import (
 )
 
 var grepRecursive bool
+var grepIgnoreCase bool
 
 var grepCmd = &cobra.Command{
 	Use:   "grep [pattern] [file or directory]",
@@ -20,6 +21,10 @@ var grepCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		pattern := args[0]
 		path := args[1]
+
+		if grepIgnoreCase {
+			pattern = strings.ToLower(pattern)
+		}
 
 		info, err := os.Stat(path)
 		if err != nil {
@@ -82,7 +87,11 @@ var grepCmd = &cobra.Command{
 				for i, row := range rows {
 					match := false
 					for _, cell := range row {
-						if strings.Contains(cell, pattern) {
+						cellToSearch := cell
+						if grepIgnoreCase {
+							cellToSearch = strings.ToLower(cell)
+						}
+						if strings.Contains(cellToSearch, pattern) {
 							match = true
 							break
 						}
@@ -103,4 +112,5 @@ var grepCmd = &cobra.Command{
 func init() {
 	rootCmd.AddCommand(grepCmd)
 	grepCmd.Flags().BoolVarP(&grepRecursive, "recursive", "r", false, "サブディレクトリまで再帰的に検索します。")
+	grepCmd.Flags().BoolVarP(&grepIgnoreCase, "ignore-case", "i", false, "検索時に大文字小文字を区別しません。")
 }

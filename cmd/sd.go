@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 
 	"github.com/spf13/cobra"
@@ -11,6 +12,7 @@ import (
 )
 
 var sdRecursive bool
+var sdIgnoreCase bool
 
 var sdCmd = &cobra.Command{
 	Use:   "sd [search] [replace] [file or directory]",
@@ -21,6 +23,16 @@ var sdCmd = &cobra.Command{
 		search := args[0]
 		replace := args[1]
 		path := args[2]
+
+		var re *regexp.Regexp
+		if sdIgnoreCase {
+			var err error
+			re, err = regexp.Compile("(?i)" + regexp.QuoteMeta(search))
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "Error compiling regex: %v\n", err)
+				os.Exit(1)
+			}
+		}
 
 		info, err := os.Stat(path)
 		if err != nil {
@@ -86,9 +98,22 @@ var sdCmd = &cobra.Command{
 					copy(newRowValues, row)
 
 					for c, cellValue := range row {
-						if strings.Contains(cellValue, search) {
+						found := false
+						var newCellValue string
+						if sdIgnoreCase {
+							if re.MatchString(cellValue) {
+								found = true
+								newCellValue = re.ReplaceAllString(cellValue, replace)
+							}
+						} else {
+							if strings.Contains(cellValue, search) {
+								found = true
+								newCellValue = strings.ReplaceAll(cellValue, search, replace)
+							}
+						}
+
+						if found {
 							rowModified = true
-							newCellValue := strings.ReplaceAll(cellValue, search, replace)
 							newRowValues[c] = newCellValue
 							cellName, err := excelize.CoordinatesToCellName(c+1, r+1)
 							if err != nil {
@@ -123,4 +148,5 @@ var sdCmd = &cobra.Command{
 func init() {
 	rootCmd.AddCommand(sdCmd)
 	sdCmd.Flags().BoolVarP(&sdRecursive, "recursive", "r", false, "サブディレクトリまで再帰的に処理します。")
+	sdCmd.Flags().BoolVarP(&sdIgnoreCase, "ignore-case", "i", false, "検索時に大文字小文字を区別しません。")
 }
