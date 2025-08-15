@@ -2,8 +2,10 @@ package cmd
 
 import (
 	"fmt"
+	"io"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"sort"
 	"strings"
 
@@ -92,6 +94,45 @@ var diffCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		file1Path := args[0]
 		file2Path := args[1]
+
+		if file1Path == file2Path {
+			cacheDir, err := os.UserCacheDir()
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "Error getting user cache dir: %v\n", err)
+				os.Exit(1)
+			}
+			tempDir := filepath.Join(cacheDir, "asheet", "temp")
+			if err := os.MkdirAll(tempDir, 0755); err != nil {
+				fmt.Fprintf(os.Stderr, "Error creating temp dir: %v\n", err)
+				os.Exit(1)
+			}
+
+			baseName := filepath.Base(file2Path)
+			newFileName := "[REMOTE]" + baseName
+			destPath := filepath.Join(tempDir, newFileName)
+
+			sourceFile, err := os.Open(file2Path)
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "Error opening source file for copy: %v\n", err)
+				os.Exit(1)
+			}
+			defer sourceFile.Close()
+
+			destFile, err := os.Create(destPath)
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "Error creating destination file for copy: %v\n", err)
+				os.Exit(1)
+			}
+			defer destFile.Close()
+
+			_, err = io.Copy(destFile, sourceFile)
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "Error copying file: %v\n", err)
+				os.Exit(1)
+			}
+
+			file2Path = destPath
+		}
 
 		f1, err := excelize.OpenFile(file1Path)
 		if err != nil {
