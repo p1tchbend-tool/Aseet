@@ -6,7 +6,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"sort"
+	"sort"/
 	"strings"
 
 	"github.com/spf13/cobra"
@@ -108,7 +108,7 @@ var diffCmd = &cobra.Command{
 			}
 
 			baseName := filepath.Base(file2Path)
-			newFileName := "[REMOTE]" + baseName
+			newFileName := "[REMOTE]_" + baseName
 			destPath := filepath.Join(tempDir, newFileName)
 
 			sourceFile, err := os.Open(file2Path)
