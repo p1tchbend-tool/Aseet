@@ -117,7 +117,7 @@ var sdCmd = &cobra.Command{
 					}
 
 					if rowModified {
-						fmt.Printf("%s:%s:%d:%s\n", filePath, sheetName, r+1, strings.Join(newRowValues, ","))
+						fmt.Printf("%s: %s: Row %d: %s\n", filePath, sheetName, r+1, strings.Join(newRowValues, ","))
 					}
 				}
 			}
