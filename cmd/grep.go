@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 
 	"github.com/spf13/cobra"
@@ -22,8 +23,16 @@ var grepCmd = &cobra.Command{
 		pattern := args[0]
 		path := args[1]
 
+		var re *regexp.Regexp
+		var err error
 		if grepIgnoreCase {
-			pattern = strings.ToLower(pattern)
+			re, err = regexp.Compile("(?i)" + pattern)
+		} else {
+			re, err = regexp.Compile(pattern)
+		}
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Error compiling regex: %v\n", err)
+			os.Exit(1)
 		}
 
 		info, err := os.Stat(path)
@@ -87,11 +96,7 @@ var grepCmd = &cobra.Command{
 				for i, row := range rows {
 					match := false
 					for _, cell := range row {
-						cellToSearch := cell
-						if grepIgnoreCase {
-							cellToSearch = strings.ToLower(cell)
-						}
-						if strings.Contains(cellToSearch, pattern) {
+						if re.MatchString(cell) {
 							match = true
 							break
 						}
