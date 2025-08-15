@@ -95,7 +95,7 @@ var diffCmd = &cobra.Command{
 		file1Path := args[0]
 		file2Path := args[1]
 
-		if file1Path == file2Path {
+		if filepath.Base(file1Path) == filepath.Base(file2Path) {
 			cacheDir, err := os.UserCacheDir()
 			if err != nil {
 				fmt.Fprintf(os.Stderr, "Error getting user cache dir: %v\n", err)
