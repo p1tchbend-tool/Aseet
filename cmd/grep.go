@@ -33,7 +33,7 @@ var grepCmd = &cobra.Command{
 				}
 				if !info.IsDir() {
 					ext := strings.ToLower(filepath.Ext(p))
-					if ext == ".xls" || ext == ".ods" {
+					if ext == ".xls" || ext == ".xlsx" || ext == ".xlsm" || ext == ".ods" {
 						filesToProcess = append(filesToProcess, p)
 					}
 				}
