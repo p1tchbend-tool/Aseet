@@ -100,18 +100,42 @@ var sdCmd = &cobra.Command{
 					copy(newRowValues, row)
 
 					for c, cellValue := range row {
-						if re.MatchString(cellValue) {
-							rowModified = true
-							newCellValue := re.ReplaceAllString(cellValue, replace)
-							newRowValues[c] = newCellValue
-							cellName, err := excelize.CoordinatesToCellName(c+1, r+1)
-							if err != nil {
-								fmt.Fprintf(os.Stderr, "Error converting coordinates to cell name for sheet %s, row %d, col %d: %v\n", sheetName, r+1, c+1, err)
-								continue
+						cellName, err := excelize.CoordinatesToCellName(c+1, r+1)
+						if err != nil {
+							fmt.Fprintf(os.Stderr, "Error converting coordinates to cell name for sheet %s, row %d, col %d: %v\n", sheetName, r+1, c+1, err)
+							continue
+						}
+
+						formula, err := f.GetCellFormula(sheetName, cellName)
+						if err == nil && formula != "" {
+							// This cell has a formula
+							if re.MatchString(formula) {
+								rowModified = true
+								newFormula := re.ReplaceAllString(formula, replace)
+								if err := f.SetCellFormula(sheetName, cellName, newFormula); err != nil {
+									fmt.Fprintf(os.Stderr, "Error setting cell formula for %s on sheet %s: %v\n", cellName, sheetName, err)
+									continue
+								}
+								// Update newRowValues with the new calculated value for printing
+								newValue, err := f.GetCellValue(sheetName, cellName)
+								if err != nil {
+									// Fallback to original value if we can't get the new one
+									newRowValues[c] = cellValue
+								} else {
+									newRowValues[c] = newValue
+								}
 							}
-							if err := f.SetCellValue(sheetName, cellName, newCellValue); err != nil {
-								fmt.Fprintf(os.Stderr, "Error setting cell value for %s on sheet %s: %v\n", cellName, sheetName, err)
-								continue
+						} else {
+							// This cell does not have a formula, or we couldn't get it.
+							// Operate on the cell value.
+							if re.MatchString(cellValue) {
+								rowModified = true
+								newCellValue := re.ReplaceAllString(cellValue, replace)
+								newRowValues[c] = newCellValue
+								if err := f.SetCellValue(sheetName, cellName, newCellValue); err != nil {
+									fmt.Fprintf(os.Stderr, "Error setting cell value for %s on sheet %s: %v\n", cellName, sheetName, err)
+									continue
+								}
 							}
 						}
 					}
