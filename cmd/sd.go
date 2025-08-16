@@ -13,6 +13,7 @@ import (
 
 var sdRecursive bool
 var sdIgnoreCase bool
+var sdSheetName string
 
 var sdCmd = &cobra.Command{
 	Use:   "sd [search] [replace] [file or directory]",
@@ -87,7 +88,28 @@ var sdCmd = &cobra.Command{
 				continue
 			}
 
-			for _, sheetName := range f.GetSheetList() {
+			var sheetsToProcess []string
+			if sdSheetName != "" {
+				// Check if sheet exists
+				sheetFound := false
+				for _, s := range f.GetSheetList() {
+					if s == sdSheetName {
+						sheetFound = true
+						break
+					}
+				}
+
+				if sheetFound {
+					sheetsToProcess = append(sheetsToProcess, sdSheetName)
+				} else {
+					fmt.Fprintf(os.Stderr, "Error: Sheet '%s' not found in file %s\n", sdSheetName, filePath)
+					continue
+				}
+			} else {
+				sheetsToProcess = f.GetSheetList()
+			}
+
+			for _, sheetName := range sheetsToProcess {
 				rows, err := f.GetRows(sheetName)
 				if err != nil {
 					fmt.Fprintf(os.Stderr, "Error getting rows from sheet %s: %v\n", sheetName, err)
@@ -156,4 +178,5 @@ func init() {
 	rootCmd.AddCommand(sdCmd)
 	sdCmd.Flags().BoolVarP(&sdRecursive, "recursive", "r", false, "サブディレクトリまで再帰的に処理します。")
 	sdCmd.Flags().BoolVarP(&sdIgnoreCase, "ignore-case", "i", false, "検索時に大文字小文字を区別しません。")
+	sdCmd.Flags().StringVarP(&sdSheetName, "name", "n", "", "指定したシートのセルの値を置換します。")
 }
