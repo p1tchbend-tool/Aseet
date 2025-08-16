@@ -13,10 +13,11 @@ import (
 	"github.com/xuri/excelize/v2"
 )
 
-// findHeaderRow scans the first 100 rows to find the header row.
-// A header row candidate has no empty cells between the first and last non-empty cell.
-// The header row is the candidate with the most cells.
+// findHeaderRow は、指定されたシートの最初の100行をスキャンしてヘッダー行を見つけます。
+// ヘッダー行の候補は、最初と最後の空でないセルの間に空のセルがない行です。
+// 最もセル数が多い候補がヘッダー行として採用されます。
 func findHeaderRow(f *excelize.File, sheetName string) ([]string, int, error) {
+	// シートからすべての行を取得
 	rows, err := f.GetRows(sheetName)
 	if err != nil {
 		return nil, 0, err
@@ -26,11 +27,13 @@ func findHeaderRow(f *excelize.File, sheetName string) ([]string, int, error) {
 	headerRowNum := 0
 	maxCells := -1
 
+	// スキャンする行数を決定（最大100行）
 	numRowsToCheck := 100
 	if len(rows) < numRowsToCheck {
 		numRowsToCheck = len(rows)
 	}
 
+	// 指定された行数までループしてヘッダー行候補を探す
 	for i := 0; i < numRowsToCheck; i++ {
 		row := rows[i]
 		if len(row) == 0 {
@@ -40,7 +43,7 @@ func findHeaderRow(f *excelize.File, sheetName string) ([]string, int, error) {
 		firstCellIdx := -1
 		lastCellIdx := -1
 
-		// Find first and last non-empty cell indices
+		// 行内の最初と最後の空でないセルのインデックスを見つける
 		for j, cell := range row {
 			if cell != "" {
 				if firstCellIdx == -1 {
@@ -50,11 +53,12 @@ func findHeaderRow(f *excelize.File, sheetName string) ([]string, int, error) {
 			}
 		}
 
-		if firstCellIdx == -1 { // Row is effectively empty
+		// 行が実質的に空である場合、次の行へ
+		if firstCellIdx == -1 {
 			continue
 		}
 
-		// Check for empty cells between first and last non-empty cells
+		// 最初と最後の空でないセルの間に空のセルがあるかチェック
 		isCandidate := true
 		sliceToCheck := row[firstCellIdx : lastCellIdx+1]
 		for _, cell := range sliceToCheck {
@@ -68,17 +72,18 @@ func findHeaderRow(f *excelize.File, sheetName string) ([]string, int, error) {
 			continue
 		}
 
-		// This is a candidate, check if it's the best one so far
+		// この行はヘッダー行の候補。これまでで最もセル数が多いかチェック
 		cellCount := len(sliceToCheck)
 		if cellCount > maxCells {
 			maxCells = cellCount
 			headerRow = row
-			headerRowNum = i + 1 // 1-based index
+			headerRowNum = i + 1 // 1-basedの行番号
 		}
 	}
 
+	// 適切なヘッダー行が見つからなかった場合
 	if headerRowNum == 0 {
-		return nil, 0, nil // No suitable header found
+		return nil, 0, nil
 	}
 
 	return headerRow, headerRowNum, nil
@@ -95,22 +100,28 @@ var diffCmd = &cobra.Command{
 		file1Path := args[0]
 		file2Path := args[1]
 
+		// 2つのファイル名が同じ場合（git diffなどでの利用を想定）、
+		// 2つ目のファイルを一時ディレクトリにコピーして比較対象とする
 		if filepath.Base(file1Path) == filepath.Base(file2Path) {
+			// ユーザーキャッシュディレクトリを取得
 			cacheDir, err := os.UserCacheDir()
 			if err != nil {
 				fmt.Fprintf(os.Stderr, "Error getting user cache dir: %v\n", err)
 				os.Exit(1)
 			}
+			// asheet用の一時ディレクトリを作成
 			tempDir := filepath.Join(cacheDir, "asheet", "temp")
 			if err := os.MkdirAll(tempDir, 0755); err != nil {
 				fmt.Fprintf(os.Stderr, "Error creating temp dir: %v\n", err)
 				os.Exit(1)
 			}
 
+			// コピー先のファイルパスを生成
 			baseName := filepath.Base(file2Path)
 			newFileName := "[REMOTE]_" + baseName
 			destPath := filepath.Join(tempDir, newFileName)
 
+			// ファイルをコピー
 			sourceFile, err := os.Open(file2Path)
 			if err != nil {
 				fmt.Fprintf(os.Stderr, "Error opening source file for copy: %v\n", err)
@@ -131,35 +142,41 @@ var diffCmd = &cobra.Command{
 				os.Exit(1)
 			}
 
+			// 2つ目のファイルのパスを一時ファイルのパスに更新
 			file2Path = destPath
 		}
 
+		// 1つ目のExcelファイルを開く
 		f1, err := excelize.OpenFile(file1Path)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "Error opening file %s: %v\n", file1Path, err)
 			os.Exit(1)
 		}
+		// 処理終了時にファイルをクローズする
 		defer func() {
 			if err := f1.Close(); err != nil {
 				fmt.Fprintf(os.Stderr, "Error closing file %s: %v\n", file1Path, err)
 			}
 		}()
 
+		// 2つ目のExcelファイルを開く
 		f2, err := excelize.OpenFile(file2Path)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "Error opening file %s: %v\n", file2Path, err)
 			os.Exit(1)
 		}
+		// 処理終了時にファイルをクローズする
 		defer func() {
 			if err := f2.Close(); err != nil {
 				fmt.Fprintf(os.Stderr, "Error closing file %s: %v\n", file2Path, err)
 			}
 		}()
 
+		// 各ファイルのシートリストを取得
 		sheets1 := f1.GetSheetList()
 		sheets2 := f2.GetSheetList()
 
-		// Create maps for quick lookup
+		// シート名の存在を高速にチェックするためのマップを作成
 		sheetMap1 := make(map[string]bool)
 		for _, s := range sheets1 {
 			sheetMap1[s] = true
@@ -169,7 +186,7 @@ var diffCmd = &cobra.Command{
 			sheetMap2[s] = true
 		}
 
-		// Create a combined, unique, sorted list of all sheet names
+		// 両方のファイルに存在するすべてのシート名を重複なく集め、ソートする
 		allSheetsMap := make(map[string]bool)
 		for _, s := range sheets1 {
 			allSheetsMap[s] = true
@@ -183,10 +200,12 @@ var diffCmd = &cobra.Command{
 		}
 		sort.Strings(allSheets)
 
+		// すべてのシートをループして比較
 		for _, sheet := range allSheets {
 			_, existsIn1 := sheetMap1[sheet]
 			_, existsIn2 := sheetMap2[sheet]
 
+			// シートが片方のファイルにしか存在しない場合の処理
 			if !existsIn1 {
 				fmt.Printf("Sheet '%s' only in %s\n\n", sheet, file2Path)
 				continue
@@ -196,7 +215,8 @@ var diffCmd = &cobra.Command{
 				continue
 			}
 
-			// Common sheet logic
+			// 両方のファイルに存在するシートの比較ロジック
+			// 各シートからヘッダー行を特定
 			row1, rowNum1, err1 := findHeaderRow(f1, sheet)
 			if err1 != nil {
 				fmt.Fprintf(os.Stderr, "Error reading sheet %s from %s: %v\n", sheet, file1Path, err1)
@@ -209,7 +229,8 @@ var diffCmd = &cobra.Command{
 				continue
 			}
 
-			// Compare headers
+			// ヘッダー行を比較
+			// まず、ヘッダー行から空のセルを除外したスライスを作成
 			var r1NonEmpty []string
 			for _, cell := range row1 {
 				if cell != "" {
@@ -223,6 +244,7 @@ var diffCmd = &cobra.Command{
 				}
 			}
 
+			// 各ヘッダー項目（列名）の出現回数をマップに記録（重複列対応）
 			map1 := make(map[string]int)
 			for _, s := range r1NonEmpty {
 				map1[s]++
@@ -232,6 +254,7 @@ var diffCmd = &cobra.Command{
 				map2[s]++
 			}
 
+			// 各ファイルにのみ存在するヘッダー項目を特定
 			var onlyInFile1, onlyInFile2 []string
 			for val, count1 := range map1 {
 				count2 := map2[val]
@@ -250,6 +273,7 @@ var diffCmd = &cobra.Command{
 				}
 			}
 
+			// ヘッダーに差分があれば結果を出力
 			if len(onlyInFile1) > 0 || len(onlyInFile2) > 0 {
 				fmt.Printf("Sheet '%s': Header row content mismatch. Comparing %s (Row %d) and %s (Row %d):\n", sheet, file1Path, rowNum1, file2Path, rowNum2)
 				if len(onlyInFile1) > 0 {
@@ -267,7 +291,8 @@ var diffCmd = &cobra.Command{
 				fmt.Println()
 			}
 
-			// Headers are identical, compare data rows
+			// ヘッダーが同一の場合、データ行を比較
+			// シートからすべての行を取得
 			allRows1, err := f1.GetRows(sheet)
 			if err != nil {
 				fmt.Fprintf(os.Stderr, "Error reading all rows from sheet %s in %s: %v\n", sheet, file1Path, err)
@@ -279,6 +304,7 @@ var diffCmd = &cobra.Command{
 				continue
 			}
 
+			// ヘッダー名から列インデックスへのマップを作成
 			header1Indices := make(map[string]int)
 			for i, h := range row1 {
 				if h != "" {
@@ -296,6 +322,7 @@ var diffCmd = &cobra.Command{
 				}
 			}
 
+			// 両方のファイルに存在する共通のヘッダー名をスライスに格納
 			var commonHeaderSlice []string
 			for h := range header1Indices {
 				if _, ok := header2Indices[h]; ok {
@@ -304,15 +331,18 @@ var diffCmd = &cobra.Command{
 			}
 			sort.Strings(commonHeaderSlice)
 
+			// 比較する最大行数を決定
 			maxRows := len(allRows1)
 			if len(allRows2) > maxRows {
 				maxRows = len(allRows2)
 			}
 
 			rowContentDiff := false
+			// 1行ずつデータを比較
 			for i := 0; i < maxRows; i++ {
 				physicalRowNum := i + 1
 
+				// ヘッダー行自体は比較対象から除外
 				if (rowNum1 > 0 && physicalRowNum == rowNum1) || (rowNum2 > 0 && physicalRowNum == rowNum2) {
 					continue
 				}
@@ -320,11 +350,14 @@ var diffCmd = &cobra.Command{
 				rowHasDiff := false
 				var row1Vals, row2Vals []string
 
+				// 共通のヘッダー列についてセルを比較
 				for _, hName := range commonHeaderSlice {
 					idx1 := header1Indices[hName]
 					idx2 := header2Indices[hName]
 
+					// 比較対象のセルを特定
 					cellName1, _ := excelize.CoordinatesToCellName(idx1+1, physicalRowNum)
+					// まず数式を取得し、なければ値を取得する
 					val1, _ := f1.GetCellFormula(sheet, cellName1)
 					if val1 == "" {
 						val1, _ = f1.GetCellValue(sheet, cellName1)
@@ -336,6 +369,7 @@ var diffCmd = &cobra.Command{
 						val2, _ = f2.GetCellValue(sheet, cellName2)
 					}
 
+					// セルの値を比較
 					if val1 != val2 {
 						rowHasDiff = true
 					}
@@ -343,6 +377,7 @@ var diffCmd = &cobra.Command{
 					row2Vals = append(row2Vals, val2)
 				}
 
+				// 行に差分があれば結果を出力
 				if rowHasDiff {
 					if !rowContentDiff {
 						fmt.Printf("Sheet '%s': Found differences in row content:\n", sheet)
@@ -358,6 +393,7 @@ var diffCmd = &cobra.Command{
 			}
 		}
 
+		// --open フラグが指定されている場合、比較した2つのファイルをアプリケーションで開く
 		if openFiles {
 			exec.Command("cmd", "/C", "start", file1Path).Start()
 			exec.Command("cmd", "/C", "start", file2Path).Start()
@@ -366,6 +402,8 @@ var diffCmd = &cobra.Command{
 }
 
 func init() {
+	// diffコマンドをルートコマンドに追加
 	rootCmd.AddCommand(diffCmd)
+	// --open, -o フラグを定義
 	diffCmd.Flags().BoolVarP(&openFiles, "open", "o", false, "最後に2つのファイルを関連付けられたアプリケーションで開きます。")
 }
