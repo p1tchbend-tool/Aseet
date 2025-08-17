@@ -9,12 +9,52 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/pmezard/go-difflib/difflib"
 	"github.com/spf13/cobra"
 	"github.com/xuri/excelize/v2"
 )
 
 var diffFormula bool
 var openFiles bool
+
+// sheetToStringWithMatchedColumns は、指定されたシートの内容を文字列に変換します。
+// unmatchedColumnMap に含まれる列は無視します。
+func sheetToStringWithMatchedColumns(f *excelize.File, sheetName string, useFormula bool, unmatchedColumnMap map[int]bool) (string, error) {
+	rows, err := f.GetRows(sheetName)
+	if err != nil {
+		return "", err
+	}
+
+	var sheetContent strings.Builder
+	for r, row := range rows {
+		var outputCells []string
+		// 物理的な列番号は 1 から始まる
+		for c, originalValue := range row {
+			physicalColNum := c + 1
+			if _, exists := unmatchedColumnMap[physicalColNum]; exists {
+				continue // この列は無視する
+			}
+
+			cellName, _ := excelize.CoordinatesToCellName(physicalColNum, r+1)
+			var cellValue string
+			if useFormula {
+				formula, _ := f.GetCellFormula(sheetName, cellName)
+				if formula != "" {
+					cellValue = formula
+				} else {
+					cellValue = originalValue
+				}
+			} else {
+				cellValue = originalValue
+			}
+			escapedV := strings.ReplaceAll(cellValue, "\"", "\"\"")
+			outputCells = append(outputCells, fmt.Sprintf("\"%s\"", escapedV))
+		}
+		sheetContent.WriteString(strings.Join(outputCells, ","))
+		sheetContent.WriteString("\n")
+	}
+	return sheetContent.String(), nil
+}
 
 // findHeaderRow は、指定されたシートの最初の100行をスキャンしてヘッダー行を見つけます。
 // ヘッダー行の候補は、最初と最後の空でないセルの間に空のセルがない行です。
@@ -300,112 +340,40 @@ var diffCmd = &cobra.Command{
 				fmt.Println()
 			}
 
-			// シートからすべての行を取得
-			allRows1, err := f1.GetRows(sheet)
-			if err != nil {
-				fmt.Fprintf(os.Stderr, "Error reading all rows from sheet %s in %s: %v\n", sheet, localPath, err)
+			// unmatchedColumnMap を使って、一致する列のみを文字列に変換
+			content1, err1 := sheetToStringWithMatchedColumns(f1, sheet, diffFormula, unmatchedColumnMap)
+			if err1 != nil {
+				fmt.Fprintf(os.Stderr, "Error processing sheet %s from %s: %v\n", sheet, localPath, err1)
 				continue
 			}
-			allRows2, err := f2.GetRows(sheet)
-			if err != nil {
-				fmt.Fprintf(os.Stderr, "Error reading all rows from sheet %s in %s: %v\n", sheet, remotePath, err)
+			content2, err2 := sheetToStringWithMatchedColumns(f2, sheet, diffFormula, unmatchedColumnMap)
+			if err2 != nil {
+				fmt.Fprintf(os.Stderr, "Error processing sheet %s from %s: %v\n", sheet, remotePath, err2)
 				continue
 			}
 
-			// 比較する最大行数を決定
-			maxRows := len(allRows1)
-			if len(allRows2) > maxRows {
-				maxRows = len(allRows2)
-			}
-
-			isRowContentDiff := false
-			for i := 0; i < maxRows; i++ {
-				physicalRowNum := i + 1
-				isRowHasDiff := false
-
-				var row1, row2 []string
-				if i < len(allRows1) {
-					row1 = allRows1[i]
+			// go-difflib を使って比較し、結果を出力
+			if content1 != content2 {
+				diff := difflib.UnifiedDiff{
+					A:        difflib.SplitLines(content1),
+					B:        difflib.SplitLines(content2),
+					FromFile: filepath.Join(filepath.Base(localPath), sheet),
+					ToFile:   filepath.Join(filepath.Base(remotePath), sheet),
+					Context:  3,
 				}
-				if i < len(allRows2) {
-					row2 = allRows2[i]
+				diffString, err := difflib.GetUnifiedDiffString(diff)
+				if err != nil {
+					fmt.Fprintf(os.Stderr, "Error generating diff for sheet %s: %v\n", sheet, err)
+					continue
 				}
-
-				maxCols := len(row1)
-				if len(row2) > maxCols {
-					maxCols = len(row2)
-				}
-
-				var row1Vals, row2Vals []string
-				for j := 0; j < maxCols; j++ {
-					physicalColNum := j + 1
-
-					var val1, val2 string
-					// Get value from file 1
-					cellName1, _ := excelize.CoordinatesToCellName(physicalColNum, physicalRowNum)
-					if diffFormula {
-						val1, _ = f1.GetCellFormula(sheet, cellName1)
-						if val1 == "" {
-							val1, _ = f1.GetCellValue(sheet, cellName1)
-						}
-					} else {
-						val1, _ = f1.GetCellValue(sheet, cellName1)
-					}
-					row1Vals = append(row1Vals, val1)
-
-					// Get value from file 2
-					cellName2, _ := excelize.CoordinatesToCellName(physicalColNum, physicalRowNum)
-					if diffFormula {
-						val2, _ = f2.GetCellFormula(sheet, cellName2)
-						if val2 == "" {
-							val2, _ = f2.GetCellValue(sheet, cellName2)
-						}
-					} else {
-						val2, _ = f2.GetCellValue(sheet, cellName2)
-					}
-					row2Vals = append(row2Vals, val2)
-
-					// Compare if not in unmatched columns
-					if _, exists := unmatchedColumnMap[physicalColNum]; !exists {
-						if val1 != val2 {
-							isRowHasDiff = true
-						}
-					}
-				}
-
-				// 行に差分があれば結果を出力
-				if isRowHasDiff {
+				if diffString != "" {
 					if !isShownSheetName {
 						fmt.Println("================================================================================")
 						fmt.Println(sheet)
 						fmt.Println("================================================================================")
-						isShownSheetName = true
 					}
-
-					if !isRowContentDiff {
-						fmt.Printf("Found differences in row content: [%s] vs [%s]\n", localPath, remotePath)
-						isRowContentDiff = true
-					}
-
-					var formattedRow1Vals []string
-					for _, v := range row1Vals {
-						escapedV := strings.ReplaceAll(v, "\"", "\"\"")
-						formattedRow1Vals = append(formattedRow1Vals, fmt.Sprintf("\"%s\"", escapedV))
-					}
-					row1Str := strings.Join(formattedRow1Vals, ",")
-
-					var formattedRow2Vals []string
-					for _, v := range row2Vals {
-						escapedV := strings.ReplaceAll(v, "\"", "\"\"")
-						formattedRow2Vals = append(formattedRow2Vals, fmt.Sprintf("\"%s\"", escapedV))
-					}
-					row2Str := strings.Join(formattedRow2Vals, ",")
-					fmt.Printf("  - Row %d: [%s] vs [%s]\n", physicalRowNum, row1Str, row2Str)
+					fmt.Print(diffString)
 				}
-			}
-
-			if isRowContentDiff {
-				fmt.Println()
 			}
 		}
 
