@@ -221,6 +221,7 @@ var diffCmd = &cobra.Command{
 				continue
 			}
 
+			var unmathedcolumnNumbers []int
 			// 両方のファイルに存在するシートの比較ロジック
 			// 各シートからヘッダー行を特定
 			row1, _, err1 := findHeaderRow(f1, sheet)
