@@ -331,33 +331,6 @@ var diffCmd = &cobra.Command{
 				continue
 			}
 
-			// ヘッダー名から列インデックスへのマップを作成
-			header1Indices := make(map[string]int)
-			for i, h := range row1 {
-				if h != "" {
-					if _, exists := header1Indices[h]; !exists {
-						header1Indices[h] = i
-					}
-				}
-			}
-			header2Indices := make(map[string]int)
-			for i, h := range row2 {
-				if h != "" {
-					if _, exists := header2Indices[h]; !exists {
-						header2Indices[h] = i
-					}
-				}
-			}
-
-			// 両方のファイルに存在する共通のヘッダー名をスライスに格納
-			var commonHeaderSlice []string
-			for h := range header1Indices {
-				if _, ok := header2Indices[h]; ok {
-					commonHeaderSlice = append(commonHeaderSlice, h)
-				}
-			}
-			sort.Strings(commonHeaderSlice)
-
 			// 比較する最大行数を決定
 			maxRows := len(allRows1)
 			if len(allRows2) > maxRows {
@@ -368,43 +341,63 @@ var diffCmd = &cobra.Command{
 			// 1行ずつデータを比較
 			for i := 0; i < maxRows; i++ {
 				physicalRowNum := i + 1
-
 				isRowHasDiff := false
+
+				var row1, row2 []string
+				if i < len(allRows1) {
+					row1 = allRows1[i]
+				}
+				if i < len(allRows2) {
+					row2 = allRows2[i]
+				}
+
+				maxCols := len(row1)
+				if len(row2) > maxCols {
+					maxCols = len(row2)
+				}
+
 				var row1Vals, row2Vals []string
+				for j := 0; j < maxCols; j++ {
+					physicalColNum := j + 1
 
-				// 共通のヘッダー列についてセルを比較
-				for _, hName := range commonHeaderSlice {
-					idx1 := header1Indices[hName]
-					idx2 := header2Indices[hName]
-
-					// 比較対象のセルを特定
-					cellName1, _ := excelize.CoordinatesToCellName(idx1+1, physicalRowNum)
-					// まず数式を取得し、なければ値を取得する
-					val1, _ := f1.GetCellFormula(sheet, cellName1)
+					var val1, val2 string
+					// Get value from file 1
+					cellName1, _ := excelize.CoordinatesToCellName(physicalColNum, physicalRowNum)
+					val1, _ = f1.GetCellFormula(sheet, cellName1)
 					if val1 == "" {
 						val1, _ = f1.GetCellValue(sheet, cellName1)
 					}
+					row1Vals = append(row1Vals, val1)
 
-					cellName2, _ := excelize.CoordinatesToCellName(idx2+1, physicalRowNum)
-					val2, _ := f2.GetCellFormula(sheet, cellName2)
+					// Get value from file 2
+					cellName2, _ := excelize.CoordinatesToCellName(physicalColNum, physicalRowNum)
+					val2, _ = f2.GetCellFormula(sheet, cellName2)
 					if val2 == "" {
 						val2, _ = f2.GetCellValue(sheet, cellName2)
 					}
-
-					// セルの値を比較
-					if val1 != val2 {
-						isRowHasDiff = true
-					}
-					row1Vals = append(row1Vals, val1)
 					row2Vals = append(row2Vals, val2)
+
+					// Compare if not in unmatched columns
+					if _, exists := unmatchedColumnMap[physicalColNum]; !exists {
+						if val1 != val2 {
+							isRowHasDiff = true
+						}
+					}
 				}
 
 				// 行に差分があれば結果を出力
 				if isRowHasDiff {
 					if !isRowContentDiff {
-						fmt.Printf("Sheet '%s': Found differences in row content:\n", sheet)
+						if !isShownSheetName {
+							fmt.Println("================================================================================")
+							fmt.Println(sheet)
+							fmt.Println("================================================================================")
+							isShownSheetName = true
+						}
+						fmt.Printf("Found differences in row content:\n")
 						isRowContentDiff = true
 					}
+
 					row1Str := strings.Join(row1Vals, ", ")
 					row2Str := strings.Join(row2Vals, ", ")
 					fmt.Printf("  - Row %d: [%s] vs [%s]\n", physicalRowNum, row1Str, row2Str)
