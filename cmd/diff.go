@@ -89,6 +89,51 @@ func findHeaderRow(f *excelize.File, sheetName string) ([]string, int, error) {
 	return headerRow, headerRowNum, nil
 }
 
+// handleSameFileName は2つのファイル名が同じ場合（git diffなどでの利用を想定）、
+// 2つ目のファイルを一時ディレクトリにコピーして比較対象とします。
+// 新しいファイルパスとエラーを返します。
+func handleSameFileName(localPath, remotePath string) (string, error) {
+	if filepath.Base(localPath) != filepath.Base(remotePath) {
+		return remotePath, nil
+	}
+
+	// ユーザーキャッシュディレクトリを取得
+	cacheDir, err := os.UserCacheDir()
+	if err != nil {
+		return "", fmt.Errorf("Error getting user cache dir: %v", err)
+	}
+	// aseet用の一時ディレクトリを作成
+	tempDir := filepath.Join(cacheDir, "aseet", "temp")
+	if err := os.MkdirAll(tempDir, 0755); err != nil {
+		return "", fmt.Errorf("Error creating temp dir: %v", err)
+	}
+
+	// コピー先のファイルパスを生成
+	baseName := filepath.Base(remotePath)
+	newFileName := "[REMOTE]_" + baseName
+	destPath := filepath.Join(tempDir, newFileName)
+
+	// ファイルをコピー
+	sourceFile, err := os.Open(remotePath)
+	if err != nil {
+		return "", fmt.Errorf("Error opening source file for copy: %v", err)
+	}
+	defer sourceFile.Close()
+
+	destFile, err := os.Create(destPath)
+	if err != nil {
+		return "", fmt.Errorf("Error creating destination file for copy: %v", err)
+	}
+	defer destFile.Close()
+
+	_, err = io.Copy(destFile, sourceFile)
+	if err != nil {
+		return "", fmt.Errorf("Error copying file: %v", err)
+	}
+
+	return destPath, nil
+}
+
 var openFiles bool
 
 var diffCmd = &cobra.Command{
@@ -100,50 +145,10 @@ var diffCmd = &cobra.Command{
 		localPath := args[0]
 		remotePath := args[1]
 
-		// 2つのファイル名が同じ場合（git diffなどでの利用を想定）、
-		// 2つ目のファイルを一時ディレクトリにコピーして比較対象とする
-		if filepath.Base(localPath) == filepath.Base(remotePath) {
-			// ユーザーキャッシュディレクトリを取得
-			cacheDir, err := os.UserCacheDir()
-			if err != nil {
-				fmt.Fprintf(os.Stderr, "Error getting user cache dir: %v\n", err)
-				os.Exit(1)
-			}
-			// aseet用の一時ディレクトリを作成
-			tempDir := filepath.Join(cacheDir, "aseet", "temp")
-			if err := os.MkdirAll(tempDir, 0755); err != nil {
-				fmt.Fprintf(os.Stderr, "Error creating temp dir: %v\n", err)
-				os.Exit(1)
-			}
-
-			// コピー先のファイルパスを生成
-			baseName := filepath.Base(remotePath)
-			newFileName := "[REMOTE]_" + baseName
-			destPath := filepath.Join(tempDir, newFileName)
-
-			// ファイルをコピー
-			sourceFile, err := os.Open(remotePath)
-			if err != nil {
-				fmt.Fprintf(os.Stderr, "Error opening source file for copy: %v\n", err)
-				os.Exit(1)
-			}
-			defer sourceFile.Close()
-
-			destFile, err := os.Create(destPath)
-			if err != nil {
-				fmt.Fprintf(os.Stderr, "Error creating destination file for copy: %v\n", err)
-				os.Exit(1)
-			}
-			defer destFile.Close()
-
-			_, err = io.Copy(destFile, sourceFile)
-			if err != nil {
-				fmt.Fprintf(os.Stderr, "Error copying file: %v\n", err)
-				os.Exit(1)
-			}
-
-			// 2つ目のファイルのパスを一時ファイルのパスに更新
-			remotePath = destPath
+		remotePath, err := handleSameFileName(localPath, remotePath)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "%v\n", err)
+			os.Exit(1)
 		}
 
 		// 1つ目のExcelファイルを開く
