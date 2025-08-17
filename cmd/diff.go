@@ -223,13 +223,13 @@ var diffCmd = &cobra.Command{
 
 			// 両方のファイルに存在するシートの比較ロジック
 			// 各シートからヘッダー行を特定
-			row1, rowNum1, err1 := findHeaderRow(f1, sheet)
+			row1, _, err1 := findHeaderRow(f1, sheet)
 			if err1 != nil {
 				fmt.Fprintf(os.Stderr, "Error reading sheet %s from %s: %v\n", sheet, localPath, err1)
 				continue
 			}
 
-			row2, rowNum2, err2 := findHeaderRow(f2, sheet)
+			row2, _, err2 := findHeaderRow(f2, sheet)
 			if err2 != nil {
 				fmt.Fprintf(os.Stderr, "Error reading sheet %s from %s: %v\n", sheet, remotePath, err2)
 				continue
