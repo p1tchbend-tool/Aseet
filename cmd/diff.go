@@ -97,32 +97,32 @@ var diffCmd = &cobra.Command{
 	Long:  `Show the difference in sheet names and header row content between two excel files. This command compares header columns by their content, accounting for additions and deletions. The header row is identified by scanning the first 100 rows. Empty cells in header rows are ignored. It also compares data rows cell by cell for columns with matching headers, prioritizing formulas over calculated values.`,
 	Args:  cobra.ExactArgs(2),
 	Run: func(cmd *cobra.Command, args []string) {
-		file1Path := args[0]
-		file2Path := args[1]
+		localPath := args[0]
+		remotePath := args[1]
 
 		// 2つのファイル名が同じ場合（git diffなどでの利用を想定）、
 		// 2つ目のファイルを一時ディレクトリにコピーして比較対象とする
-		if filepath.Base(file1Path) == filepath.Base(file2Path) {
+		if filepath.Base(localPath) == filepath.Base(remotePath) {
 			// ユーザーキャッシュディレクトリを取得
 			cacheDir, err := os.UserCacheDir()
 			if err != nil {
 				fmt.Fprintf(os.Stderr, "Error getting user cache dir: %v\n", err)
 				os.Exit(1)
 			}
-			// asheet用の一時ディレクトリを作成
-			tempDir := filepath.Join(cacheDir, "asheet", "temp")
+			// aseet用の一時ディレクトリを作成
+			tempDir := filepath.Join(cacheDir, "aseet", "temp")
 			if err := os.MkdirAll(tempDir, 0755); err != nil {
 				fmt.Fprintf(os.Stderr, "Error creating temp dir: %v\n", err)
 				os.Exit(1)
 			}
 
 			// コピー先のファイルパスを生成
-			baseName := filepath.Base(file2Path)
+			baseName := filepath.Base(remotePath)
 			newFileName := "[REMOTE]_" + baseName
 			destPath := filepath.Join(tempDir, newFileName)
 
 			// ファイルをコピー
-			sourceFile, err := os.Open(file2Path)
+			sourceFile, err := os.Open(remotePath)
 			if err != nil {
 				fmt.Fprintf(os.Stderr, "Error opening source file for copy: %v\n", err)
 				os.Exit(1)
@@ -143,32 +143,32 @@ var diffCmd = &cobra.Command{
 			}
 
 			// 2つ目のファイルのパスを一時ファイルのパスに更新
-			file2Path = destPath
+			remotePath = destPath
 		}
 
 		// 1つ目のExcelファイルを開く
-		f1, err := excelize.OpenFile(file1Path)
+		f1, err := excelize.OpenFile(localPath)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "Error opening file %s: %v\n", file1Path, err)
+			fmt.Fprintf(os.Stderr, "Error opening file %s: %v\n", localPath, err)
 			os.Exit(1)
 		}
 		// 処理終了時にファイルをクローズする
 		defer func() {
 			if err := f1.Close(); err != nil {
-				fmt.Fprintf(os.Stderr, "Error closing file %s: %v\n", file1Path, err)
+				fmt.Fprintf(os.Stderr, "Error closing file %s: %v\n", localPath, err)
 			}
 		}()
 
 		// 2つ目のExcelファイルを開く
-		f2, err := excelize.OpenFile(file2Path)
+		f2, err := excelize.OpenFile(remotePath)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "Error opening file %s: %v\n", file2Path, err)
+			fmt.Fprintf(os.Stderr, "Error opening file %s: %v\n", remotePath, err)
 			os.Exit(1)
 		}
 		// 処理終了時にファイルをクローズする
 		defer func() {
 			if err := f2.Close(); err != nil {
-				fmt.Fprintf(os.Stderr, "Error closing file %s: %v\n", file2Path, err)
+				fmt.Fprintf(os.Stderr, "Error closing file %s: %v\n", remotePath, err)
 			}
 		}()
 
@@ -207,11 +207,11 @@ var diffCmd = &cobra.Command{
 
 			// シートが片方のファイルにしか存在しない場合の処理
 			if !existsIn1 {
-				fmt.Printf("Sheet '%s' only in %s\n\n", sheet, file2Path)
+				fmt.Printf("Sheet '%s' only in %s\n\n", sheet, remotePath)
 				continue
 			}
 			if !existsIn2 {
-				fmt.Printf("Sheet '%s' only in %s\n\n", sheet, file1Path)
+				fmt.Printf("Sheet '%s' only in %s\n\n", sheet, localPath)
 				continue
 			}
 
@@ -219,13 +219,13 @@ var diffCmd = &cobra.Command{
 			// 各シートからヘッダー行を特定
 			row1, rowNum1, err1 := findHeaderRow(f1, sheet)
 			if err1 != nil {
-				fmt.Fprintf(os.Stderr, "Error reading sheet %s from %s: %v\n", sheet, file1Path, err1)
+				fmt.Fprintf(os.Stderr, "Error reading sheet %s from %s: %v\n", sheet, localPath, err1)
 				continue
 			}
 
 			row2, rowNum2, err2 := findHeaderRow(f2, sheet)
 			if err2 != nil {
-				fmt.Fprintf(os.Stderr, "Error reading sheet %s from %s: %v\n", sheet, file2Path, err2)
+				fmt.Fprintf(os.Stderr, "Error reading sheet %s from %s: %v\n", sheet, remotePath, err2)
 				continue
 			}
 
@@ -275,15 +275,15 @@ var diffCmd = &cobra.Command{
 
 			// ヘッダーに差分があれば結果を出力
 			if len(onlyInFile1) > 0 || len(onlyInFile2) > 0 {
-				fmt.Printf("Sheet '%s': Header row content mismatch. Comparing %s (Row %d) and %s (Row %d):\n", sheet, file1Path, rowNum1, file2Path, rowNum2)
+				fmt.Printf("Sheet '%s': Header row content mismatch. Comparing %s (Row %d) and %s (Row %d):\n", sheet, localPath, rowNum1, remotePath, rowNum2)
 				if len(onlyInFile1) > 0 {
-					fmt.Printf("  Columns only in %s:\n", file1Path)
+					fmt.Printf("  Columns only in %s:\n", localPath)
 					for _, s := range onlyInFile1 {
 						fmt.Printf("    - %s\n", s)
 					}
 				}
 				if len(onlyInFile2) > 0 {
-					fmt.Printf("  Columns only in %s:\n", file2Path)
+					fmt.Printf("  Columns only in %s:\n", remotePath)
 					for _, s := range onlyInFile2 {
 						fmt.Printf("    - %s\n", s)
 					}
@@ -295,12 +295,12 @@ var diffCmd = &cobra.Command{
 			// シートからすべての行を取得
 			allRows1, err := f1.GetRows(sheet)
 			if err != nil {
-				fmt.Fprintf(os.Stderr, "Error reading all rows from sheet %s in %s: %v\n", sheet, file1Path, err)
+				fmt.Fprintf(os.Stderr, "Error reading all rows from sheet %s in %s: %v\n", sheet, localPath, err)
 				continue
 			}
 			allRows2, err := f2.GetRows(sheet)
 			if err != nil {
-				fmt.Fprintf(os.Stderr, "Error reading all rows from sheet %s in %s: %v\n", sheet, file2Path, err)
+				fmt.Fprintf(os.Stderr, "Error reading all rows from sheet %s in %s: %v\n", sheet, remotePath, err)
 				continue
 			}
 
@@ -395,8 +395,8 @@ var diffCmd = &cobra.Command{
 
 		// --open フラグが指定されている場合、比較した2つのファイルをアプリケーションで開く
 		if openFiles {
-			exec.Command("cmd", "/C", "start", file1Path).Start()
-			exec.Command("cmd", "/C", "start", file2Path).Start()
+			exec.Command("cmd", "/C", "start", localPath).Start()
+			exec.Command("cmd", "/C", "start", remotePath).Start()
 		}
 	},
 }

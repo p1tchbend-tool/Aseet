@@ -1,6 +1,6 @@
 package main
 
-import "asheet/cmd"
+import "aseet/cmd"
 
 func main() {
 	cmd.Execute()

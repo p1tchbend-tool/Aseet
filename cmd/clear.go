@@ -11,7 +11,7 @@ import (
 var clearCmd = &cobra.Command{
 	Use:   "clear",
 	Short: "一時ファイルを削除します。",
-	Long:  `asheet/temp フォルダにあるすべての一時ファイルを削除します。`,
+	Long:  `aseet/temp フォルダにあるすべての一時ファイルを削除します。`,
 	Args:  cobra.NoArgs,
 	Run: func(cmd *cobra.Command, args []string) {
 		cacheDir, err := os.UserCacheDir()
@@ -19,7 +19,7 @@ var clearCmd = &cobra.Command{
 			fmt.Fprintf(os.Stderr, "Error getting user cache dir: %v\n", err)
 			os.Exit(1)
 		}
-		tempDir := filepath.Join(cacheDir, "asheet", "temp")
+		tempDir := filepath.Join(cacheDir, "aseet", "temp")
 
 		if _, err := os.Stat(tempDir); os.IsNotExist(err) {
 			fmt.Println("一時ファイルはありません。")

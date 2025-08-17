@@ -8,9 +8,9 @@ import (
 )
 
 var rootCmd = &cobra.Command{
-	Use:   "asheet",
+	Use:   "aseet",
 	Short: "A CLI tool to handle excel files",
-	Long:  `asheet is a CLI tool created with Cobra to perform operations on Excel files.`,
+	Long:  `aseet is a CLI tool created with Cobra to perform operations on Excel files.`,
 }
 
 func Execute() {
