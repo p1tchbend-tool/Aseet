@@ -52,7 +52,7 @@ var sdCmd = &cobra.Command{
 					}
 					if !info.IsDir() {
 						ext := strings.ToLower(filepath.Ext(p))
-						if ext == ".xls" || ext == ".xlsx" || ext == ".xlsm" || ext == ".ods" {
+						if ext == ".xlsx" || ext == ".xlsm" {
 							filesToProcess = append(filesToProcess, p)
 						}
 					}
@@ -71,7 +71,7 @@ var sdCmd = &cobra.Command{
 				for _, entry := range entries {
 					if !entry.IsDir() {
 						ext := strings.ToLower(filepath.Ext(entry.Name()))
-						if ext == ".xls" || ext == ".xlsx" || ext == ".xlsm" || ext == ".ods" {
+						if ext == ".xlsx" || ext == ".xlsm" {
 							filesToProcess = append(filesToProcess, filepath.Join(path, entry.Name()))
 						}
 					}
