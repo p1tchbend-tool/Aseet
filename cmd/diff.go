@@ -358,11 +358,6 @@ var diffCmd = &cobra.Command{
 			for i := 0; i < maxRows; i++ {
 				physicalRowNum := i + 1
 
-				// ヘッダー行自体は比較対象から除外
-				if (rowNum1 > 0 && physicalRowNum == rowNum1) || (rowNum2 > 0 && physicalRowNum == rowNum2) {
-					continue
-				}
-
 				isRowHasDiff := false
 				var row1Vals, row2Vals []string
 
