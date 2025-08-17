@@ -144,11 +144,12 @@ func contains(slice []string, item string) bool {
 }
 
 var openFiles bool
+var formula bool
 
 var diffCmd = &cobra.Command{
 	Use:   "diff [file1] [file2]",
 	Short: "Show the difference in sheet names and header row content between two excel files",
-	Long:  `Show the difference in sheet names and header row content between two excel files. This command compares header columns by their content, accounting for additions and deletions. The header row is identified by scanning the first 100 rows. Empty cells in header rows are ignored. It also compares data rows cell by cell for columns with matching headers, prioritizing formulas over calculated values.`,
+	Long:  `Show the difference in sheet names and header row content between two excel files. This command compares header columns by their content, accounting for additions and deletions. The header row is identified by scanning the first 100 rows. Empty cells in header rows are ignored. It also compares data rows cell by cell for columns with matching headers. With the -f flag, it prioritizes formulas over calculated values.`,
 	Args:  cobra.ExactArgs(2),
 	Run: func(cmd *cobra.Command, args []string) {
 		localPath := args[0]
@@ -363,16 +364,24 @@ var diffCmd = &cobra.Command{
 					var val1, val2 string
 					// Get value from file 1
 					cellName1, _ := excelize.CoordinatesToCellName(physicalColNum, physicalRowNum)
-					val1, _ = f1.GetCellFormula(sheet, cellName1)
-					if val1 == "" {
+					if formula {
+						val1, _ = f1.GetCellFormula(sheet, cellName1)
+						if val1 == "" {
+							val1, _ = f1.GetCellValue(sheet, cellName1)
+						}
+					} else {
 						val1, _ = f1.GetCellValue(sheet, cellName1)
 					}
 					row1Vals = append(row1Vals, val1)
 
 					// Get value from file 2
 					cellName2, _ := excelize.CoordinatesToCellName(physicalColNum, physicalRowNum)
-					val2, _ = f2.GetCellFormula(sheet, cellName2)
-					if val2 == "" {
+					if formula {
+						val2, _ = f2.GetCellFormula(sheet, cellName2)
+						if val2 == "" {
+							val2, _ = f2.GetCellValue(sheet, cellName2)
+						}
+					} else {
 						val2, _ = f2.GetCellValue(sheet, cellName2)
 					}
 					row2Vals = append(row2Vals, val2)
@@ -423,4 +432,5 @@ func init() {
 	rootCmd.AddCommand(diffCmd)
 	// --open, -o フラグを定義
 	diffCmd.Flags().BoolVarP(&openFiles, "open", "o", false, "最後に2つのファイルを関連付けられたアプリケーションで開きます。")
+	diffCmd.Flags().BoolVarP(&formula, "formula", "f", false, "セルに数式がある場合は数式を比較対象にします。")
 }
