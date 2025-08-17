@@ -262,7 +262,7 @@ var diffCmd = &cobra.Command{
 
 			// 各ファイルにのみ存在するヘッダー項目を特定
 			var onlyInFile1, onlyInFile2 []string
-			unmatchedMap := make(map[int]bool)
+			unmatchedColumnMap := make(map[int]bool)
 			for val, count1 := range map1 {
 				count2 := map2[val]
 				if count1 > count2 {
@@ -271,7 +271,7 @@ var diffCmd = &cobra.Command{
 					}
 					for i, h := range row1 {
 						if h == val {
-							unmatchedMap[i+1] = true
+							unmatchedColumnMap[i+1] = true
 						}
 					}
 				}
@@ -284,7 +284,7 @@ var diffCmd = &cobra.Command{
 					}
 					for i, h := range row2 {
 						if h == val {
-							unmatchedMap[i+1] = true
+							unmatchedColumnMap[i+1] = true
 						}
 					}
 				}
