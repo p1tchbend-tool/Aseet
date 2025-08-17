@@ -134,6 +134,15 @@ func handleSameFileName(localPath, remotePath string) (string, error) {
 	return destPath, nil
 }
 
+func contains(slice []string, item string) bool {
+	for _, a := range slice {
+		if a == item {
+			return true
+		}
+	}
+	return false
+}
+
 var openFiles bool
 
 var diffCmd = &cobra.Command{
@@ -181,34 +190,20 @@ var diffCmd = &cobra.Command{
 		sheets1 := f1.GetSheetList()
 		sheets2 := f2.GetSheetList()
 
-		// シート名の存在を高速にチェックするためのマップを作成
-		sheetMap1 := make(map[string]bool)
-		for _, s := range sheets1 {
-			sheetMap1[s] = true
-		}
-		sheetMap2 := make(map[string]bool)
-		for _, s := range sheets2 {
-			sheetMap2[s] = true
-		}
-
 		// 両方のファイルに存在するすべてのシート名を重複なく集め、ソートする
-		allSheetsMap := make(map[string]bool)
-		for _, s := range sheets1 {
-			allSheetsMap[s] = true
-		}
-		for _, s := range sheets2 {
-			allSheetsMap[s] = true
-		}
 		var allSheets []string
-		for s := range allSheetsMap {
-			allSheets = append(allSheets, s)
+		allSheets = append(allSheets, sheets1...)
+		for _, s := range sheets2 {
+			if !contains(sheets1, s) {
+				allSheets = append(allSheets, s)
+			}
 		}
 		sort.Strings(allSheets)
 
 		// すべてのシートをループして比較
 		for _, sheet := range allSheets {
-			_, existsIn1 := sheetMap1[sheet]
-			_, existsIn2 := sheetMap2[sheet]
+			existsIn1 := contains(sheets1, sheet)
+			existsIn2 := contains(sheets2, sheet)
 
 			// シートが片方のファイルにしか存在しない場合の処理
 			if !existsIn1 {
