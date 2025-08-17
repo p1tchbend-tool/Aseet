@@ -387,22 +387,24 @@ var diffCmd = &cobra.Command{
 
 				// 行に差分があれば結果を出力
 				if isRowHasDiff {
+					if !isShownSheetName {
+						fmt.Println("================================================================================")
+						fmt.Println(sheet)
+						fmt.Println("================================================================================")
+						isShownSheetName = true
+					}
+
 					if !isRowContentDiff {
-						if !isShownSheetName {
-							fmt.Println("================================================================================")
-							fmt.Println(sheet)
-							fmt.Println("================================================================================")
-							isShownSheetName = true
-						}
-						fmt.Printf("Found differences in row content:\n")
+						fmt.Printf("Found differences in row content: [%s] vs [%s]\n", localPath, remotePath)
 						isRowContentDiff = true
 					}
 
-					row1Str := strings.Join(row1Vals, ", ")
-					row2Str := strings.Join(row2Vals, ", ")
+					row1Str := strings.Join(row1Vals, ",")
+					row2Str := strings.Join(row2Vals, ",")
 					fmt.Printf("  - Row %d: [%s] vs [%s]\n", physicalRowNum, row1Str, row2Str)
 				}
 			}
+
 			if isRowContentDiff {
 				fmt.Println()
 			}
