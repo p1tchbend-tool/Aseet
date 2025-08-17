@@ -91,15 +91,15 @@ var sdCmd = &cobra.Command{
 			var sheetsToProcess []string
 			if sdSheetName != "" {
 				// Check if sheet exists
-				sheetFound := false
+				isSheetFound := false
 				for _, s := range f.GetSheetList() {
 					if s == sdSheetName {
-						sheetFound = true
+						isSheetFound = true
 						break
 					}
 				}
 
-				if sheetFound {
+				if isSheetFound {
 					sheetsToProcess = append(sheetsToProcess, sdSheetName)
 				} else {
 					fmt.Fprintf(os.Stderr, "Error: Sheet '%s' not found in file %s\n", sdSheetName, filePath)
@@ -117,7 +117,7 @@ var sdCmd = &cobra.Command{
 				}
 
 				for r, row := range rows {
-					rowModified := false
+					isRowModified := false
 					newRowValues := make([]string, len(row))
 					copy(newRowValues, row)
 
@@ -132,7 +132,7 @@ var sdCmd = &cobra.Command{
 						if err == nil && formula != "" {
 							// This cell has a formula
 							if re.MatchString(formula) {
-								rowModified = true
+								isRowModified = true
 								newFormula := re.ReplaceAllString(formula, replace)
 								if err := f.SetCellFormula(sheetName, cellName, newFormula); err != nil {
 									fmt.Fprintf(os.Stderr, "Error setting cell formula for %s on sheet %s: %v\n", cellName, sheetName, err)
@@ -145,7 +145,7 @@ var sdCmd = &cobra.Command{
 							// This cell does not have a formula, or we couldn't get it.
 							// Operate on the cell value.
 							if re.MatchString(cellValue) {
-								rowModified = true
+								isRowModified = true
 								newCellValue := re.ReplaceAllString(cellValue, replace)
 								newRowValues[c] = newCellValue
 								if err := f.SetCellValue(sheetName, cellName, newCellValue); err != nil {
@@ -156,7 +156,7 @@ var sdCmd = &cobra.Command{
 						}
 					}
 
-					if rowModified {
+					if isRowModified {
 						fmt.Printf("[Replaced] %s: %s: Row %d\n", filePath, sheetName, r+1)
 					}
 				}

@@ -207,10 +207,16 @@ var diffCmd = &cobra.Command{
 
 			// シートが片方のファイルにしか存在しない場合の処理
 			if !existsIn1 {
+				fmt.Println("================================================================================")
+				fmt.Println(sheet)
+				fmt.Println("================================================================================")
 				fmt.Printf("Sheet '%s' only in %s\n\n", sheet, remotePath)
 				continue
 			}
 			if !existsIn2 {
+				fmt.Println("================================================================================")
+				fmt.Println(sheet)
+				fmt.Println("================================================================================")
 				fmt.Printf("Sheet '%s' only in %s\n\n", sheet, localPath)
 				continue
 			}
@@ -273,20 +279,30 @@ var diffCmd = &cobra.Command{
 				}
 			}
 
+			isShownSheetName := false
+
 			// ヘッダーに差分があれば結果を出力
 			if len(onlyInFile1) > 0 || len(onlyInFile2) > 0 {
-				fmt.Printf("Sheet '%s': Header row content mismatch. Comparing %s (Row %d) and %s (Row %d):\n", sheet, localPath, rowNum1, remotePath, rowNum2)
 				if len(onlyInFile1) > 0 {
-					fmt.Printf("  Columns only in %s:\n", localPath)
+					fmt.Println("================================================================================")
+					fmt.Println(sheet)
+					fmt.Println("================================================================================")
 					for _, s := range onlyInFile1 {
-						fmt.Printf("    - %s\n", s)
+						fmt.Printf("Columns '%s' only in %s\n", s, localPath)
 					}
+					isShownSheetName = true
 				}
+
 				if len(onlyInFile2) > 0 {
-					fmt.Printf("  Columns only in %s:\n", remotePath)
-					for _, s := range onlyInFile2 {
-						fmt.Printf("    - %s\n", s)
+					if !isShownSheetName {
+						fmt.Println("================================================================================")
+						fmt.Println(sheet)
+						fmt.Println("================================================================================")
 					}
+					for _, s := range onlyInFile2 {
+						fmt.Printf("Columns '%s' only in %s\n", s, remotePath)
+					}
+					isShownSheetName = true
 				}
 				fmt.Println()
 			}
@@ -337,7 +353,7 @@ var diffCmd = &cobra.Command{
 				maxRows = len(allRows2)
 			}
 
-			rowContentDiff := false
+			isRowContentDiff := false
 			// 1行ずつデータを比較
 			for i := 0; i < maxRows; i++ {
 				physicalRowNum := i + 1
@@ -347,7 +363,7 @@ var diffCmd = &cobra.Command{
 					continue
 				}
 
-				rowHasDiff := false
+				isRowHasDiff := false
 				var row1Vals, row2Vals []string
 
 				// 共通のヘッダー列についてセルを比較
@@ -371,24 +387,24 @@ var diffCmd = &cobra.Command{
 
 					// セルの値を比較
 					if val1 != val2 {
-						rowHasDiff = true
+						isRowHasDiff = true
 					}
 					row1Vals = append(row1Vals, val1)
 					row2Vals = append(row2Vals, val2)
 				}
 
 				// 行に差分があれば結果を出力
-				if rowHasDiff {
-					if !rowContentDiff {
+				if isRowHasDiff {
+					if !isRowContentDiff {
 						fmt.Printf("Sheet '%s': Found differences in row content:\n", sheet)
-						rowContentDiff = true
+						isRowContentDiff = true
 					}
 					row1Str := strings.Join(row1Vals, ", ")
 					row2Str := strings.Join(row2Vals, ", ")
 					fmt.Printf("  - Row %d: [%s] vs [%s]\n", physicalRowNum, row1Str, row2Str)
 				}
 			}
-			if rowContentDiff {
+			if isRowContentDiff {
 				fmt.Println()
 			}
 		}

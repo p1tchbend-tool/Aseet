@@ -95,7 +95,7 @@ var grepCmd = &cobra.Command{
 				}
 
 				for i, row := range rows {
-					match := false
+					isMatched := false
 					for c, cell := range row {
 						searchTarget := cell
 						if grepFormula {
@@ -109,11 +109,11 @@ var grepCmd = &cobra.Command{
 						}
 
 						if re.MatchString(searchTarget) {
-							match = true
+							isMatched = true
 							break
 						}
 					}
-					if match {
+					if isMatched {
 						fmt.Printf("[Matched] %s: %s: Row %d\n", filePath, sheetName, i+1)
 					}
 				}
