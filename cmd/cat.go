@@ -9,6 +9,10 @@ import (
 	"github.com/xuri/excelize/v2"
 )
 
+var all bool
+var sheetName string
+var catFormula bool
+
 func printSheetContents(f *excelize.File, sheetName string) error {
 	rows, err := f.GetRows(sheetName)
 	if err != nil {
@@ -26,7 +30,7 @@ func printSheetContents(f *excelize.File, sheetName string) error {
 			}
 
 			formulaText, err := f.GetCellFormula(sheetName, cellName)
-			if formula && err == nil && formulaText != "" {
+			if catFormula && err == nil && formulaText != "" {
 				outputCells = append(outputCells, fmt.Sprintf("\"%s\"", strings.ReplaceAll(formulaText, "\"", "\"\"")))
 			} else {
 				value, err := f.GetCellValue(sheetName, cellName)
@@ -42,10 +46,6 @@ func printSheetContents(f *excelize.File, sheetName string) error {
 	}
 	return nil
 }
-
-var all bool
-var sheetName string
-var formula bool
 
 var catCmd = &cobra.Command{
 	Use:   "cat [file]",
@@ -93,5 +93,5 @@ func init() {
 	rootCmd.AddCommand(catCmd)
 	catCmd.Flags().BoolVarP(&all, "all", "a", false, "すべてのシートのセルの値をカンマ区切りで表示します。")
 	catCmd.Flags().StringVarP(&sheetName, "name", "n", "", "指定したシートのセルの値をカンマ区切りで表示します。")
-	catCmd.Flags().BoolVarP(&formula, "formula", "f", false, "セルの値が数式の場合は値でなく数式を表示します。")
+	catCmd.Flags().BoolVarP(&catFormula, "formula", "f", false, "セルの値が数式の場合は値でなく数式を表示します。")
 }
