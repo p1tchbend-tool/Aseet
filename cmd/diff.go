@@ -144,7 +144,7 @@ func contains(slice []string, item string) bool {
 }
 
 var openFiles bool
-var formula bool
+var diffFormula bool
 
 var diffCmd = &cobra.Command{
 	Use:   "diff [file1] [file2]",
@@ -364,7 +364,7 @@ var diffCmd = &cobra.Command{
 					var val1, val2 string
 					// Get value from file 1
 					cellName1, _ := excelize.CoordinatesToCellName(physicalColNum, physicalRowNum)
-					if formula {
+					if diffFormula {
 						val1, _ = f1.GetCellFormula(sheet, cellName1)
 						if val1 == "" {
 							val1, _ = f1.GetCellValue(sheet, cellName1)
@@ -376,7 +376,7 @@ var diffCmd = &cobra.Command{
 
 					// Get value from file 2
 					cellName2, _ := excelize.CoordinatesToCellName(physicalColNum, physicalRowNum)
-					if formula {
+					if diffFormula {
 						val2, _ = f2.GetCellFormula(sheet, cellName2)
 						if val2 == "" {
 							val2, _ = f2.GetCellValue(sheet, cellName2)
@@ -443,5 +443,5 @@ func init() {
 	rootCmd.AddCommand(diffCmd)
 	// --open, -o フラグを定義
 	diffCmd.Flags().BoolVarP(&openFiles, "open", "o", false, "最後に2つのファイルを関連付けられたアプリケーションで開きます。")
-	diffCmd.Flags().BoolVarP(&formula, "formula", "f", false, "セルに数式がある場合は数式を比較対象にします。")
+	diffCmd.Flags().BoolVarP(&diffFormula, "formula", "f", false, "セルに数式がある場合は数式を比較対象にします。")
 }
