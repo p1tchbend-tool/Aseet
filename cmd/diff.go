@@ -100,12 +100,12 @@ func handleSameFileName(localPath, remotePath string) (string, error) {
 	// ユーザーキャッシュディレクトリを取得
 	cacheDir, err := os.UserCacheDir()
 	if err != nil {
-		return "", fmt.Errorf("Error getting user cache dir: %v", err)
+		return "", fmt.Errorf("error getting user cache dir: %v", err)
 	}
 	// aseet用の一時ディレクトリを作成
 	tempDir := filepath.Join(cacheDir, "aseet", "temp")
 	if err := os.MkdirAll(tempDir, 0755); err != nil {
-		return "", fmt.Errorf("Error creating temp dir: %v", err)
+		return "", fmt.Errorf("error creating temp dir: %v", err)
 	}
 
 	// コピー先のファイルパスを生成
@@ -116,19 +116,19 @@ func handleSameFileName(localPath, remotePath string) (string, error) {
 	// ファイルをコピー
 	sourceFile, err := os.Open(remotePath)
 	if err != nil {
-		return "", fmt.Errorf("Error opening source file for copy: %v", err)
+		return "", fmt.Errorf("error opening source file for copy: %v", err)
 	}
 	defer sourceFile.Close()
 
 	destFile, err := os.Create(destPath)
 	if err != nil {
-		return "", fmt.Errorf("Error creating destination file for copy: %v", err)
+		return "", fmt.Errorf("error creating destination file for copy: %v", err)
 	}
 	defer destFile.Close()
 
 	_, err = io.Copy(destFile, sourceFile)
 	if err != nil {
-		return "", fmt.Errorf("Error copying file: %v", err)
+		return "", fmt.Errorf("error copying file: %v", err)
 	}
 
 	return destPath, nil
