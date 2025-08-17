@@ -263,11 +263,17 @@ var diffCmd = &cobra.Command{
 
 			// 各ファイルにのみ存在するヘッダー項目を特定
 			var onlyInFile1, onlyInFile2 []string
+			unmatchedMap := make(map[int]bool)
 			for val, count1 := range map1 {
 				count2 := map2[val]
 				if count1 > count2 {
 					for i := 0; i < count1-count2; i++ {
 						onlyInFile1 = append(onlyInFile1, val)
+					}
+					for i, h := range row1 {
+						if h == val {
+							unmatchedMap[i+1] = true
+						}
 					}
 				}
 			}
@@ -277,8 +283,17 @@ var diffCmd = &cobra.Command{
 					for i := 0; i < count2-count1; i++ {
 						onlyInFile2 = append(onlyInFile2, val)
 					}
+					for i, h := range row2 {
+						if h == val {
+							unmatchedMap[i+1] = true
+						}
+					}
 				}
 			}
+			for colNum := range unmatchedMap {
+				unmathedcolumnNumbers = append(unmathedcolumnNumbers, colNum)
+			}
+			sort.Ints(unmathedcolumnNumbers)
 
 			isShownSheetName := false
 
