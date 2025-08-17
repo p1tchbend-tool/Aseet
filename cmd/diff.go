@@ -408,8 +408,19 @@ var diffCmd = &cobra.Command{
 						isRowContentDiff = true
 					}
 
-					row1Str := strings.Join(row1Vals, ",")
-					row2Str := strings.Join(row2Vals, ",")
+					var formattedRow1Vals []string
+					for _, v := range row1Vals {
+						escapedV := strings.ReplaceAll(v, "\"", "\"\"")
+						formattedRow1Vals = append(formattedRow1Vals, fmt.Sprintf("\"%s\"", escapedV))
+					}
+					row1Str := strings.Join(formattedRow1Vals, ",")
+
+					var formattedRow2Vals []string
+					for _, v := range row2Vals {
+						escapedV := strings.ReplaceAll(v, "\"", "\"\"")
+						formattedRow2Vals = append(formattedRow2Vals, fmt.Sprintf("\"%s\"", escapedV))
+					}
+					row2Str := strings.Join(formattedRow2Vals, ",")
 					fmt.Printf("  - Row %d: [%s] vs [%s]\n", physicalRowNum, row1Str, row2Str)
 				}
 			}
