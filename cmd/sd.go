@@ -11,9 +11,9 @@ import (
 	"github.com/xuri/excelize/v2"
 )
 
-var sdRecursive bool
 var sdIgnoreCase bool
 var sdSheetName string
+var sdRecursive bool
 
 var sdCmd = &cobra.Command{
 	Use:   "sd [search] [replace] [file or directory]",
@@ -176,7 +176,7 @@ var sdCmd = &cobra.Command{
 
 func init() {
 	rootCmd.AddCommand(sdCmd)
-	sdCmd.Flags().BoolVarP(&sdRecursive, "recursive", "r", false, "サブディレクトリまで再帰的に処理します。")
 	sdCmd.Flags().BoolVarP(&sdIgnoreCase, "ignore-case", "i", false, "検索時に大文字小文字を区別しません。")
 	sdCmd.Flags().StringVarP(&sdSheetName, "name", "n", "", "指定したシートのセルの値を置換します。")
+	sdCmd.Flags().BoolVarP(&sdRecursive, "recursive", "r", false, "サブディレクトリまで再帰的に処理します。")
 }

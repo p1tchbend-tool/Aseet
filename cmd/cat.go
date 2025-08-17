@@ -10,8 +10,8 @@ import (
 )
 
 var all bool
-var sheetName string
 var catFormula bool
+var sheetName string
 
 func printSheetContents(f *excelize.File, sheetName string) error {
 	rows, err := f.GetRows(sheetName)
@@ -92,6 +92,6 @@ var catCmd = &cobra.Command{
 func init() {
 	rootCmd.AddCommand(catCmd)
 	catCmd.Flags().BoolVarP(&all, "all", "a", false, "すべてのシートのセルの値をカンマ区切りで表示します。")
-	catCmd.Flags().StringVarP(&sheetName, "name", "n", "", "指定したシートのセルの値をカンマ区切りで表示します。")
 	catCmd.Flags().BoolVarP(&catFormula, "formula", "f", false, "セルの値が数式の場合は値でなく数式を表示します。")
+	catCmd.Flags().StringVarP(&sheetName, "name", "n", "", "指定したシートのセルの値をカンマ区切りで表示します。")
 }

@@ -11,9 +11,9 @@ import (
 	"github.com/xuri/excelize/v2"
 )
 
-var grepRecursive bool
-var grepIgnoreCase bool
 var grepFormula bool
+var grepIgnoreCase bool
+var grepRecursive bool
 
 var grepCmd = &cobra.Command{
 	Use:   "grep [pattern] [file or directory]",
@@ -128,7 +128,7 @@ var grepCmd = &cobra.Command{
 
 func init() {
 	rootCmd.AddCommand(grepCmd)
-	grepCmd.Flags().BoolVarP(&grepRecursive, "recursive", "r", false, "サブディレクトリまで再帰的に検索します。")
-	grepCmd.Flags().BoolVarP(&grepIgnoreCase, "ignore-case", "i", false, "検索時に大文字小文字を区別しません。")
 	grepCmd.Flags().BoolVarP(&grepFormula, "formula", "f", false, "セルに数式がある場合は数式を検索対象にします。")
+	grepCmd.Flags().BoolVarP(&grepIgnoreCase, "ignore-case", "i", false, "検索時に大文字小文字を区別しません。")
+	grepCmd.Flags().BoolVarP(&grepRecursive, "recursive", "r", false, "サブディレクトリまで再帰的に検索します。")
 }

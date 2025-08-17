@@ -13,11 +13,13 @@ import (
 	"github.com/xuri/excelize/v2"
 )
 
+var diffFormula bool
+var openFiles bool
+
 // findHeaderRow は、指定されたシートの最初の100行をスキャンしてヘッダー行を見つけます。
 // ヘッダー行の候補は、最初と最後の空でないセルの間に空のセルがない行です。
 // 最もセル数が多い候補がヘッダー行として採用されます。
 func findHeaderRow(f *excelize.File, sheetName string) ([]string, int, error) {
-	// シートからすべての行を取得
 	rows, err := f.GetRows(sheetName)
 	if err != nil {
 		return nil, 0, err
@@ -27,13 +29,11 @@ func findHeaderRow(f *excelize.File, sheetName string) ([]string, int, error) {
 	headerRowNum := 0
 	maxCells := -1
 
-	// スキャンする行数を決定（最大100行）
 	numRowsToCheck := 100
 	if len(rows) < numRowsToCheck {
 		numRowsToCheck = len(rows)
 	}
 
-	// 指定された行数までループしてヘッダー行候補を探す
 	for i := 0; i < numRowsToCheck; i++ {
 		row := rows[i]
 		if len(row) == 0 {
@@ -43,7 +43,6 @@ func findHeaderRow(f *excelize.File, sheetName string) ([]string, int, error) {
 		firstCellIdx := -1
 		lastCellIdx := -1
 
-		// 行内の最初と最後の空でないセルのインデックスを見つける
 		for j, cell := range row {
 			if cell != "" {
 				if firstCellIdx == -1 {
@@ -53,7 +52,6 @@ func findHeaderRow(f *excelize.File, sheetName string) ([]string, int, error) {
 			}
 		}
 
-		// 行が実質的に空である場合、次の行へ
 		if firstCellIdx == -1 {
 			continue
 		}
@@ -77,7 +75,7 @@ func findHeaderRow(f *excelize.File, sheetName string) ([]string, int, error) {
 		if cellCount > maxCells {
 			maxCells = cellCount
 			headerRow = row
-			headerRowNum = i + 1 // 1-basedの行番号
+			headerRowNum = i + 1
 		}
 	}
 
@@ -89,7 +87,7 @@ func findHeaderRow(f *excelize.File, sheetName string) ([]string, int, error) {
 	return headerRow, headerRowNum, nil
 }
 
-// handleSameFileName は2つのファイル名が同じ場合（git diffなどでの利用を想定）、
+// handleSameFileName は2つのファイル名が同じ場合（git difftoolなどでの利用を想定）、
 // 2つ目のファイルを一時ディレクトリにコピーして比較対象とします。
 // 新しいファイルパスとエラーを返します。
 func handleSameFileName(localPath, remotePath string) (string, error) {
@@ -97,23 +95,19 @@ func handleSameFileName(localPath, remotePath string) (string, error) {
 		return remotePath, nil
 	}
 
-	// ユーザーキャッシュディレクトリを取得
 	cacheDir, err := os.UserCacheDir()
 	if err != nil {
 		return "", fmt.Errorf("error getting user cache dir: %v", err)
 	}
-	// aseet用の一時ディレクトリを作成
 	tempDir := filepath.Join(cacheDir, "aseet", "temp")
 	if err := os.MkdirAll(tempDir, 0755); err != nil {
 		return "", fmt.Errorf("error creating temp dir: %v", err)
 	}
 
-	// コピー先のファイルパスを生成
 	baseName := filepath.Base(remotePath)
 	newFileName := "[REMOTE]_" + baseName
 	destPath := filepath.Join(tempDir, newFileName)
 
-	// ファイルをコピー
 	sourceFile, err := os.Open(remotePath)
 	if err != nil {
 		return "", fmt.Errorf("error opening source file for copy: %v", err)
@@ -143,9 +137,6 @@ func contains(slice []string, item string) bool {
 	return false
 }
 
-var openFiles bool
-var diffFormula bool
-
 var diffCmd = &cobra.Command{
 	Use:   "diff [file1] [file2]",
 	Short: "Show the difference in sheet names and header row content between two excel files",
@@ -167,12 +158,7 @@ var diffCmd = &cobra.Command{
 			fmt.Fprintf(os.Stderr, "Error opening file %s: %v\n", localPath, err)
 			os.Exit(1)
 		}
-		// 処理終了時にファイルをクローズする
-		defer func() {
-			if err := f1.Close(); err != nil {
-				fmt.Fprintf(os.Stderr, "Error closing file %s: %v\n", localPath, err)
-			}
-		}()
+		defer f1.Close()
 
 		// 2つ目のExcelファイルを開く
 		f2, err := excelize.OpenFile(remotePath)
@@ -180,18 +166,13 @@ var diffCmd = &cobra.Command{
 			fmt.Fprintf(os.Stderr, "Error opening file %s: %v\n", remotePath, err)
 			os.Exit(1)
 		}
-		// 処理終了時にファイルをクローズする
-		defer func() {
-			if err := f2.Close(); err != nil {
-				fmt.Fprintf(os.Stderr, "Error closing file %s: %v\n", remotePath, err)
-			}
-		}()
+		defer f2.Close()
 
 		// 各ファイルのシートリストを取得
 		sheets1 := f1.GetSheetList()
 		sheets2 := f2.GetSheetList()
 
-		// 両方のファイルに存在するすべてのシート名を重複なく集め、ソートする
+		// 両方のファイルに存在するすべてのシート名を集め、ソートする
 		var allSheets []string
 		allSheets = append(allSheets, sheets1...)
 		for _, s := range sheets2 {
@@ -319,7 +300,6 @@ var diffCmd = &cobra.Command{
 				fmt.Println()
 			}
 
-			// ヘッダーが同一の場合、データ行を比較
 			// シートからすべての行を取得
 			allRows1, err := f1.GetRows(sheet)
 			if err != nil {
@@ -339,7 +319,6 @@ var diffCmd = &cobra.Command{
 			}
 
 			isRowContentDiff := false
-			// 1行ずつデータを比較
 			for i := 0; i < maxRows; i++ {
 				physicalRowNum := i + 1
 				isRowHasDiff := false
@@ -430,7 +409,6 @@ var diffCmd = &cobra.Command{
 			}
 		}
 
-		// --open フラグが指定されている場合、比較した2つのファイルをアプリケーションで開く
 		if openFiles {
 			exec.Command("cmd", "/C", "start", localPath).Start()
 			exec.Command("cmd", "/C", "start", remotePath).Start()
@@ -439,9 +417,7 @@ var diffCmd = &cobra.Command{
 }
 
 func init() {
-	// diffコマンドをルートコマンドに追加
 	rootCmd.AddCommand(diffCmd)
-	// --open, -o フラグを定義
-	diffCmd.Flags().BoolVarP(&openFiles, "open", "o", false, "最後に2つのファイルを関連付けられたアプリケーションで開きます。")
 	diffCmd.Flags().BoolVarP(&diffFormula, "formula", "f", false, "セルに数式がある場合は数式を比較対象にします。")
+	diffCmd.Flags().BoolVarP(&openFiles, "open", "o", false, "最後に2つのファイルを関連付けられたアプリケーションで開きます。")
 }
