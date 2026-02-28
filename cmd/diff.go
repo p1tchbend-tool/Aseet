@@ -178,13 +178,46 @@ var diffCmd = &cobra.Command{
 						}
 					}
 
-					sheetOutput = append(sheetOutput, strings.Join(diffCells, ","))
+					var rowNumStr string
+					if r1 != -1 {
+						rowNumStr = fmt.Sprintf("%d", r1+1)
+					} else {
+						rowNumStr = fmt.Sprintf("%d", r2+1)
+					}
+
+					sheetOutput = append(sheetOutput, fmt.Sprintf("Row %s: %s", rowNumStr, strings.Join(diffCells, ",")))
 				}
 
 				if hasSheetDiff {
 					results = append(results, diffResult{
 						title:   sheet,
 						content: strings.Join(sheetOutput, "\n"),
+					})
+				} else {
+					// 差分が全くない場合、catコマンドと同様にそのまま出力する
+					maxCols := 0
+					for _, row := range rows1 {
+						if len(row) > maxCols {
+							maxCols = len(row)
+						}
+					}
+
+					var catOutput []string
+					for _, row := range rows1 {
+						var cells []string
+						for c := 0; c < maxCols; c++ {
+							val := ""
+							if c < len(row) {
+								val = row[c]
+							}
+							cells = append(cells, escapeCSVField(val))
+						}
+						catOutput = append(catOutput, strings.Join(cells, ","))
+					}
+
+					results = append(results, diffResult{
+						title:   sheet,
+						content: strings.Join(catOutput, "\n"),
 					})
 				}
 			} else if in1 {
