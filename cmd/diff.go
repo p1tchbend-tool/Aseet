@@ -1,8 +1,6 @@
 package cmd
 
 import (
-	"bytes"
-	"encoding/csv"
 	"fmt"
 	"os"
 	"strings"
@@ -12,10 +10,16 @@ import (
 	"github.com/xuri/excelize/v2"
 )
 
+const (
+	colorRed   = "\033[31m"
+	colorGreen = "\033[32m"
+	colorReset = "\033[0m"
+)
+
 var diffCmd = &cobra.Command{
 	Use:   "diff [file1] [file2]",
 	Short: "Compare sheet names and cell contents of two Excel files",
-	Long:  `Compare sheet names of two Excel files and output the differences in unified diff format. For sheets with the same name, compare the cell contents and output the differences in CSV format.`,
+	Long:  `Compare sheet names of two Excel files and output the differences in unified diff format. For sheets with the same name, compare the cell contents cell by cell.`,
 	Args:  cobra.ExactArgs(2),
 	Run: func(cmd *cobra.Command, args []string) {
 		file1 := args[0]
@@ -67,54 +71,64 @@ var diffCmd = &cobra.Command{
 
 		for _, sheet := range sheets2 {
 			if sheetMap1[sheet] {
-				csv1, err := getSheetCSV(f1, sheet)
+				rows1, err := f1.GetRows(sheet)
 				if err != nil {
 					fmt.Fprintf(os.Stderr, "Error reading sheet %s from %s: %v\n", sheet, file1, err)
 					continue
 				}
 
-				csv2, err := getSheetCSV(f2, sheet)
+				rows2, err := f2.GetRows(sheet)
 				if err != nil {
 					fmt.Fprintf(os.Stderr, "Error reading sheet %s from %s: %v\n", sheet, file2, err)
 					continue
 				}
 
-				sheetDiff := difflib.UnifiedDiff{
-					A:        difflib.SplitLines(csv1),
-					B:        difflib.SplitLines(csv2),
-					FromFile: fmt.Sprintf("%s/%s", file1, sheet),
-					ToFile:   fmt.Sprintf("%s/%s", file2, sheet),
-					Context:  3,
+				maxRows := len(rows1)
+				if len(rows2) > maxRows {
+					maxRows = len(rows2)
 				}
 
-				sheetText, err := difflib.GetUnifiedDiffString(sheetDiff)
-				if err != nil {
-					fmt.Fprintf(os.Stderr, "Error generating diff for sheet %s: %v\n", sheet, err)
-					continue
-				}
+				for r := 0; r < maxRows; r++ {
+					var row1, row2 []string
+					if r < len(rows1) {
+						row1 = rows1[r]
+					}
+					if r < len(rows2) {
+						row2 = rows2[r]
+					}
 
-				if sheetText != "" {
-					fmt.Print(sheetText)
+					maxCols := len(row1)
+					if len(row2) > maxCols {
+						maxCols = len(row2)
+					}
+
+					for c := 0; c < maxCols; c++ {
+						val1, val2 := "", ""
+						if c < len(row1) {
+							val1 = row1[c]
+						}
+						if c < len(row2) {
+							val2 = row2[c]
+						}
+
+						if val1 != val2 {
+							cellName, err := excelize.CoordinatesToCellName(c+1, r+1)
+							if err != nil {
+								cellName = fmt.Sprintf("R%dC%d", r+1, c+1)
+							}
+
+							if val1 != "" {
+								fmt.Printf("%s- %s!%s: %s%s\n", colorRed, sheet, cellName, val1, colorReset)
+							}
+							if val2 != "" {
+								fmt.Printf("%s+ %s!%s: %s%s\n", colorGreen, sheet, cellName, val2, colorReset)
+							}
+						}
+					}
 				}
 			}
 		}
 	},
-}
-
-func getSheetCSV(f *excelize.File, sheetName string) (string, error) {
-	rows, err := f.GetRows(sheetName)
-	if err != nil {
-		return "", err
-	}
-
-	var buf bytes.Buffer
-	w := csv.NewWriter(&buf)
-	err = w.WriteAll(rows)
-	if err != nil {
-		return "", err
-	}
-
-	return buf.String(), nil
 }
 
 func init() {
