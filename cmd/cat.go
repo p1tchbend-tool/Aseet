@@ -57,8 +57,8 @@ func printSheetContents(f *excelize.File, sheetName string) error {
 
 var catCmd = &cobra.Command{
 	Use:   "cat [file]",
-	Short: "Excelファイルのシート名を出力します。",
-	Long:  `指定されたExcelファイルのシート名を1行ずつ出力します。`,
+	Short: "Output sheet names or cell values of an Excel file.",
+	Long:  `When executed without options, outputs the sheet names of the specified Excel file line by line.`,
 	Args:  cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		filePath := args[0]
@@ -174,7 +174,7 @@ var catCmd = &cobra.Command{
 
 func init() {
 	rootCmd.AddCommand(catCmd)
-	catCmd.Flags().BoolVarP(&all, "all", "a", false, "すべてのシートのセルの値をカンマ区切りで表示します。")
-	catCmd.Flags().BoolVarP(&catFormula, "formula", "f", false, "セルの値が数式の場合は値でなく数式を表示します。")
-	catCmd.Flags().StringVarP(&sheetName, "name", "n", "", "指定したシートのセルの値をカンマ区切りで表示します。")
+	catCmd.Flags().BoolVarP(&all, "all", "a", false, "Get cell values of all sheets separated by commas and display them in a TUI pager with separate tabs for each sheet.")
+	catCmd.Flags().BoolVarP(&catFormula, "formula", "f", false, "If the cell value is a formula, display the formula instead of the value.")
+	catCmd.Flags().StringVarP(&sheetName, "name", "n", "", "Display the cell values of the specified sheet separated by commas.")
 }
