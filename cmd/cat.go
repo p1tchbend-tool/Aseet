@@ -22,13 +22,7 @@ func printSheetContents(f *excelize.File, sheetName string) error {
 	for r, row := range rows {
 		var outputCells []string
 		for c, originalValue := range row {
-			cellName, err := excelize.CoordinatesToCellName(c+1, r+1)
-			if err != nil {
-				// This is unlikely to happen. Fallback to original value from GetRows.
-				outputCells = append(outputCells, fmt.Sprintf("\"%s\"", strings.ReplaceAll(originalValue, "\"", "\"\"")))
-				continue
-			}
-
+			cellName, _ := excelize.CoordinatesToCellName(c+1, r+1)
 			formulaText, err := f.GetCellFormula(sheetName, cellName)
 			if catFormula && err == nil && formulaText != "" {
 				outputCells = append(outputCells, fmt.Sprintf("\"%s\"", strings.ReplaceAll(formulaText, "\"", "\"\"")))
@@ -69,9 +63,7 @@ var catCmd = &cobra.Command{
 			}
 		} else if all {
 			for _, sheet := range f.GetSheetList() {
-				fmt.Println("================================================================================")
-				fmt.Println(sheet)
-				fmt.Println("================================================================================")
+				fmt.Printf("[%s]\n", sheet)
 				if err := printSheetContents(f, sheet); err != nil {
 					fmt.Fprintf(os.Stderr, "シート %s の行取得中にエラーが発生しました: %v\n", sheet, err)
 					continue
