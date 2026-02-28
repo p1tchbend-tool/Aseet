@@ -94,38 +94,26 @@ var diffCmd = &cobra.Command{
 			})
 		}
 
-		// 全てのユニークなシート名を取得する
-		allSheetsMap := make(map[string]bool)
+		// 全てのユニークなシート名を取得し、存在チェック用のマップを作成する
+		sheetMap1 := make(map[string]bool)
+		sheetMap2 := make(map[string]bool)
 		var allSheets []string
+
 		for _, s := range sheets1 {
-			if !allSheetsMap[s] {
-				allSheetsMap[s] = true
-				allSheets = append(allSheets, s)
-			}
+			sheetMap1[s] = true
+			allSheets = append(allSheets, s)
 		}
 		for _, s := range sheets2 {
-			if !allSheetsMap[s] {
-				allSheetsMap[s] = true
+			sheetMap2[s] = true
+			if !sheetMap1[s] {
 				allSheets = append(allSheets, s)
 			}
 		}
 
 		// 各シートについてセルの内容を比較または出力する
 		for _, sheet := range allSheets {
-			in1 := false
-			for _, s := range sheets1 {
-				if s == sheet {
-					in1 = true
-					break
-				}
-			}
-			in2 := false
-			for _, s := range sheets2 {
-				if s == sheet {
-					in2 = true
-					break
-				}
-			}
+			in1 := sheetMap1[sheet]
+			in2 := sheetMap2[sheet]
 
 			if in1 && in2 {
 				// 両方のファイルに存在する場合、差分を計算する
@@ -188,29 +176,9 @@ var diffCmd = &cobra.Command{
 					})
 				} else {
 					// 差分が全くない場合、catコマンドと同様にそのまま出力する
-					maxCols := 0
-					for _, row := range rows1 {
-						if len(row) > maxCols {
-							maxCols = len(row)
-						}
-					}
-
-					var catOutput []string
-					for _, row := range rows1 {
-						var cells []string
-						for c := 0; c < maxCols; c++ {
-							val := ""
-							if c < len(row) {
-								val = row[c]
-							}
-							cells = append(cells, escapeCSVField(val))
-						}
-						catOutput = append(catOutput, strings.Join(cells, ","))
-					}
-
 					results = append(results, diffResult{
 						title:   sheet,
-						content: strings.Join(catOutput, "\n"),
+						content: formatSheetContents(rows1),
 					})
 				}
 			} else if in1 {
@@ -221,30 +189,9 @@ var diffCmd = &cobra.Command{
 					continue
 				}
 
-				// シート内の最大列数を取得する
-				maxCols := 0
-				for _, row := range rows1 {
-					if len(row) > maxCols {
-						maxCols = len(row)
-					}
-				}
-
-				var sheetOutput []string
-				for _, row := range rows1 {
-					var cells []string
-					for c := 0; c < maxCols; c++ {
-						val := ""
-						if c < len(row) {
-							val = row[c]
-						}
-						cells = append(cells, escapeCSVField(val))
-					}
-					sheetOutput = append(sheetOutput, strings.Join(cells, ","))
-				}
-
 				results = append(results, diffResult{
 					title:   fmt.Sprintf("%s%s:%s%s", colorLightOrange, filepath.Base(file1), sheet, colorReset),
-					content: strings.Join(sheetOutput, "\n"),
+					content: formatSheetContents(rows1),
 				})
 			} else if in2 {
 				// 2つ目のファイルにのみ存在する場合、catコマンドと同様にそのまま出力する
@@ -254,30 +201,9 @@ var diffCmd = &cobra.Command{
 					continue
 				}
 
-				// シート内の最大列数を取得する
-				maxCols := 0
-				for _, row := range rows2 {
-					if len(row) > maxCols {
-						maxCols = len(row)
-					}
-				}
-
-				var sheetOutput []string
-				for _, row := range rows2 {
-					var cells []string
-					for c := 0; c < maxCols; c++ {
-						val := ""
-						if c < len(row) {
-							val = row[c]
-						}
-						cells = append(cells, escapeCSVField(val))
-					}
-					sheetOutput = append(sheetOutput, strings.Join(cells, ","))
-				}
-
 				results = append(results, diffResult{
 					title:   fmt.Sprintf("%s%s:%s%s", colorLightBlue, filepath.Base(file2), sheet, colorReset),
-					content: strings.Join(sheetOutput, "\n"),
+					content: formatSheetContents(rows2),
 				})
 			}
 		}
@@ -394,6 +320,28 @@ func transpose(matrix [][]string) [][]string {
 	return res
 }
 
+// 2つの行の不一致要素数を計算する
+func calcMatchCost(row1, row2 []string) int {
+	matchCost := 0
+	maxL := len(row1)
+	if len(row2) > maxL {
+		maxL = len(row2)
+	}
+	for k := 0; k < maxL; k++ {
+		v1, v2 := "", ""
+		if k < len(row1) {
+			v1 = row1[k]
+		}
+		if k < len(row2) {
+			v2 = row2[k]
+		}
+		if v1 != v2 {
+			matchCost++
+		}
+	}
+	return matchCost
+}
+
 // 動的計画法（DP）を用いて2つの2次元配列のアライメント（差分）を計算する
 func align(a, b [][]string) [][2]int {
 	n, m := len(a), len(b)
@@ -416,25 +364,7 @@ func align(a, b [][]string) [][2]int {
 		for j := 1; j <= m; j++ {
 			costDel := dp[i-1][j] + countNonEmpty(a[i-1])
 			costIns := dp[i][j-1] + countNonEmpty(b[j-1])
-
-			matchCost := 0
-			maxL := len(a[i-1])
-			if len(b[j-1]) > maxL {
-				maxL = len(b[j-1])
-			}
-			for k := 0; k < maxL; k++ {
-				v1, v2 := "", ""
-				if k < len(a[i-1]) {
-					v1 = a[i-1][k]
-				}
-				if k < len(b[j-1]) {
-					v2 = b[j-1][k]
-				}
-				if v1 != v2 {
-					matchCost++
-				}
-			}
-			costMatch := dp[i-1][j-1] + matchCost
+			costMatch := dp[i-1][j-1] + calcMatchCost(a[i-1], b[j-1])
 
 			minCost := costDel
 			if costIns < minCost {
@@ -452,24 +382,7 @@ func align(a, b [][]string) [][2]int {
 	i, j := n, m
 	for i > 0 || j > 0 {
 		if i > 0 && j > 0 {
-			matchCost := 0
-			maxL := len(a[i-1])
-			if len(b[j-1]) > maxL {
-				maxL = len(b[j-1])
-			}
-			for k := 0; k < maxL; k++ {
-				v1, v2 := "", ""
-				if k < len(a[i-1]) {
-					v1 = a[i-1][k]
-				}
-				if k < len(b[j-1]) {
-					v2 = b[j-1][k]
-				}
-				if v1 != v2 {
-					matchCost++
-				}
-			}
-			if dp[i][j] == dp[i-1][j-1]+matchCost {
+			if dp[i][j] == dp[i-1][j-1]+calcMatchCost(a[i-1], b[j-1]) {
 				path = append([][2]int{{i - 1, j - 1}}, path...)
 				i--
 				j--
@@ -485,4 +398,28 @@ func align(a, b [][]string) [][2]int {
 		}
 	}
 	return path
+}
+
+// シートの内容をカンマ区切りの文字列としてフォーマットする
+func formatSheetContents(rows [][]string) string {
+	maxCols := 0
+	for _, row := range rows {
+		if len(row) > maxCols {
+			maxCols = len(row)
+		}
+	}
+
+	var output []string
+	for _, row := range rows {
+		var cells []string
+		for c := 0; c < maxCols; c++ {
+			val := ""
+			if c < len(row) {
+				val = row[c]
+			}
+			cells = append(cells, escapeCSVField(val))
+		}
+		output = append(output, strings.Join(cells, ","))
+	}
+	return strings.Join(output, "\n")
 }
