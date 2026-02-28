@@ -83,36 +83,25 @@ var diffCmd = &cobra.Command{
 					continue
 				}
 
-				maxRows := len(rows1)
-				if len(rows2) > maxRows {
-					maxRows = len(rows2)
-				}
+				rowAlign := align(rows1, rows2)
+				colAlign := align(transpose(rows1), transpose(rows2))
 
 				hasSheetDiff := false
 				var sheetOutput []string
 
-				for r := 0; r < maxRows; r++ {
-					var row1, row2 []string
-					if r < len(rows1) {
-						row1 = rows1[r]
-					}
-					if r < len(rows2) {
-						row2 = rows2[r]
-					}
-
-					maxCols := len(row1)
-					if len(row2) > maxCols {
-						maxCols = len(row2)
-					}
-
+				for _, rPair := range rowAlign {
+					r1, r2 := rPair[0], rPair[1]
 					var diffCells []string
-					for c := 0; c < maxCols; c++ {
+
+					for _, cPair := range colAlign {
+						c1, c2 := cPair[0], cPair[1]
 						val1, val2 := "", ""
-						if c < len(row1) {
-							val1 = row1[c]
+
+						if r1 != -1 && c1 != -1 && r1 < len(rows1) && c1 < len(rows1[r1]) {
+							val1 = rows1[r1][c1]
 						}
-						if c < len(row2) {
-							val2 = row2[c]
+						if r2 != -1 && c2 != -1 && r2 < len(rows2) && c2 < len(rows2[r2]) {
+							val2 = rows2[r2][c2]
 						}
 
 						if val1 == val2 {
@@ -146,4 +135,120 @@ var diffCmd = &cobra.Command{
 
 func init() {
 	rootCmd.AddCommand(diffCmd)
+}
+
+func countNonEmpty(row []string) int {
+	c := 0
+	for _, v := range row {
+		if v != "" {
+			c++
+		}
+	}
+	return c
+}
+
+func transpose(matrix [][]string) [][]string {
+	maxCol := 0
+	for _, row := range matrix {
+		if len(row) > maxCol {
+			maxCol = len(row)
+		}
+	}
+	res := make([][]string, maxCol)
+	for i := 0; i < maxCol; i++ {
+		res[i] = make([]string, len(matrix))
+		for j, row := range matrix {
+			if i < len(row) {
+				res[i][j] = row[i]
+			}
+		}
+	}
+	return res
+}
+
+func align(a, b [][]string) [][2]int {
+	n, m := len(a), len(b)
+	dp := make([][]int, n+1)
+	for i := range dp {
+		dp[i] = make([]int, m+1)
+	}
+	for i := 1; i <= n; i++ {
+		dp[i][0] = dp[i-1][0] + countNonEmpty(a[i-1])
+	}
+	for j := 1; j <= m; j++ {
+		dp[0][j] = dp[0][j-1] + countNonEmpty(b[j-1])
+	}
+
+	for i := 1; i <= n; i++ {
+		for j := 1; j <= m; j++ {
+			costDel := dp[i-1][j] + countNonEmpty(a[i-1])
+			costIns := dp[i][j-1] + countNonEmpty(b[j-1])
+
+			matchCost := 0
+			maxL := len(a[i-1])
+			if len(b[j-1]) > maxL {
+				maxL = len(b[j-1])
+			}
+			for k := 0; k < maxL; k++ {
+				v1, v2 := "", ""
+				if k < len(a[i-1]) {
+					v1 = a[i-1][k]
+				}
+				if k < len(b[j-1]) {
+					v2 = b[j-1][k]
+				}
+				if v1 != v2 {
+					matchCost++
+				}
+			}
+			costMatch := dp[i-1][j-1] + matchCost
+
+			minCost := costDel
+			if costIns < minCost {
+				minCost = costIns
+			}
+			if costMatch < minCost {
+				minCost = costMatch
+			}
+			dp[i][j] = minCost
+		}
+	}
+
+	var path [][2]int
+	i, j := n, m
+	for i > 0 || j > 0 {
+		if i > 0 && j > 0 {
+			matchCost := 0
+			maxL := len(a[i-1])
+			if len(b[j-1]) > maxL {
+				maxL = len(b[j-1])
+			}
+			for k := 0; k < maxL; k++ {
+				v1, v2 := "", ""
+				if k < len(a[i-1]) {
+					v1 = a[i-1][k]
+				}
+				if k < len(b[j-1]) {
+					v2 = b[j-1][k]
+				}
+				if v1 != v2 {
+					matchCost++
+				}
+			}
+			if dp[i][j] == dp[i-1][j-1]+matchCost {
+				path = append([][2]int{{i - 1, j - 1}}, path...)
+				i--
+				j--
+				continue
+			}
+		}
+		if i > 0 && dp[i][j] == dp[i-1][j]+countNonEmpty(a[i-1]) {
+			path = append([][2]int{{i - 1, -1}}, path...)
+			i--
+		} else {
+			path = append([][2]int{{-1, j - 1}}, path...)
+			j--
+		}
+	}
+	return path
 }
