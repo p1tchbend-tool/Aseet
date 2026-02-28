@@ -3,6 +3,7 @@ package cmd
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/gdamore/tcell/v2"
@@ -223,7 +224,7 @@ var diffCmd = &cobra.Command{
 				}
 
 				results = append(results, diffResult{
-					title:   sheet,
+					title:   fmt.Sprintf("%s%s:%s%s", colorLightOrange, filepath.Base(file1), sheet, colorReset),
 					content: strings.Join(sheetOutput, "\n"),
 				})
 			} else if in2 {
@@ -256,7 +257,7 @@ var diffCmd = &cobra.Command{
 				}
 
 				results = append(results, diffResult{
-					title:   sheet,
+					title:   fmt.Sprintf("%s%s:%s%s", colorLightBlue, filepath.Base(file2), sheet, colorReset),
 					content: strings.Join(sheetOutput, "\n"),
 				})
 			}
