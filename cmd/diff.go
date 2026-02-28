@@ -196,7 +196,7 @@ var diffCmd = &cobra.Command{
 					continue
 				}
 				results = append(results, diffResult{
-					title:   fmt.Sprintf("%s%s:%s%s", colorLightOrange, filepath.Base(file1), sheet, colorReset),
+					title:   fmt.Sprintf("%s%s : %s%s", colorLightOrange, filepath.Base(file1), sheet, colorReset),
 					content: content,
 				})
 			} else if in2 {
@@ -207,7 +207,7 @@ var diffCmd = &cobra.Command{
 					continue
 				}
 				results = append(results, diffResult{
-					title:   fmt.Sprintf("%s%s:%s%s", colorLightBlue, filepath.Base(file2), sheet, colorReset),
+					title:   fmt.Sprintf("%s%s : %s%s", colorLightBlue, filepath.Base(file2), sheet, colorReset),
 					content: content,
 				})
 			}
