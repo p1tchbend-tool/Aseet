@@ -141,16 +141,16 @@ var diffCmd = &cobra.Command{
 
 						// 値が同じ場合はそのまま追加し、異なる場合は色付けして追加する
 						if val1 == val2 {
-							diffCells = append(diffCells, val1)
+							diffCells = append(diffCells, escapeCSVField(val1))
 						} else {
 							hasSheetDiff = true
 							var cellDiff string
 							if val1 != "" && val2 != "" {
-								cellDiff = fmt.Sprintf("%s-%s%s %s+%s%s", colorLightOrange, val1, colorReset, colorLightBlue, val2, colorReset)
+								cellDiff = fmt.Sprintf("%s-%s%s %s+%s%s", colorLightOrange, escapeCSVField(val1), colorReset, colorLightBlue, escapeCSVField(val2), colorReset)
 							} else if val1 != "" {
-								cellDiff = fmt.Sprintf("%s-%s%s", colorLightOrange, val1, colorReset)
+								cellDiff = fmt.Sprintf("%s-%s%s", colorLightOrange, escapeCSVField(val1), colorReset)
 							} else if val2 != "" {
-								cellDiff = fmt.Sprintf("%s+%s%s", colorLightBlue, val2, colorReset)
+								cellDiff = fmt.Sprintf("%s+%s%s", colorLightBlue, escapeCSVField(val2), colorReset)
 							}
 							diffCells = append(diffCells, cellDiff)
 						}
