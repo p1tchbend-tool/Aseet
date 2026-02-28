@@ -5,16 +5,23 @@ import (
 	"os"
 	"strings"
 
+	"github.com/gdamore/tcell/v2"
 	"github.com/pmezard/go-difflib/difflib"
+	"github.com/rivo/tview"
 	"github.com/spf13/cobra"
 	"github.com/xuri/excelize/v2"
 )
 
 const (
-	colorLightOrange = "\033[38;5;215m"
-	colorLightBlue   = "\033[38;5;117m"
-	colorReset       = "\033[0m"
+	colorLightOrange = "[#ffaf00]"
+	colorLightBlue   = "[#87d7ff]"
+	colorReset       = "[-]"
 )
+
+type diffResult struct {
+	title   string
+	content string
+}
 
 var diffCmd = &cobra.Command{
 	Use:   "diff [file1] [file2]",
@@ -38,6 +45,8 @@ var diffCmd = &cobra.Command{
 			os.Exit(1)
 		}
 		defer f2.Close()
+
+		var results []diffResult
 
 		sheets1 := f1.GetSheetList()
 		sheets2 := f2.GetSheetList()
@@ -71,7 +80,10 @@ var diffCmd = &cobra.Command{
 					lines[i] = colorLightBlue + line + colorReset
 				}
 			}
-			fmt.Print(strings.Join(lines, "\n"))
+			results = append(results, diffResult{
+				title:   "Sheet List",
+				content: strings.Join(lines, "\n"),
+			})
 		}
 
 		// Compare cell contents for common sheets
@@ -142,12 +154,78 @@ var diffCmd = &cobra.Command{
 				}
 
 				if hasSheetDiff {
-					fmt.Printf("\n[diff %s]\n", sheet)
-					for _, line := range sheetOutput {
-						fmt.Println(line)
-					}
+					results = append(results, diffResult{
+						title:   sheet,
+						content: strings.Join(sheetOutput, "\n"),
+					})
 				}
 			}
+		}
+
+		if len(results) == 0 {
+			fmt.Println("No differences found.")
+			return
+		}
+
+		app := tview.NewApplication()
+		pages := tview.NewPages()
+
+		tabBar := tview.NewTextView().
+			SetDynamicColors(true).
+			SetRegions(true).
+			SetWrap(false).
+			SetHighlightedFunc(func(added, removed, remaining []string) {
+				if len(added) > 0 {
+					pages.SwitchToPage(added[0])
+				}
+			})
+		tabBar.SetBackgroundColor(tcell.ColorDefault)
+
+		var tabTitles []string
+		for i, res := range results {
+			pageID := fmt.Sprintf("page_%d", i)
+			tabTitles = append(tabTitles, fmt.Sprintf(`["%s"] %s [""]`, pageID, res.title))
+
+			textView := tview.NewTextView().
+				SetDynamicColors(true).
+				SetText(res.content).
+				SetScrollable(true).
+				SetWrap(false)
+			textView.SetBackgroundColor(tcell.ColorDefault)
+
+			pages.AddPage(pageID, textView, true, i == 0)
+		}
+
+		tabBar.SetText(strings.Join(tabTitles, " | "))
+		if len(results) > 0 {
+			tabBar.Highlight(fmt.Sprintf("page_%d", 0))
+		}
+
+		currentTab := 0
+		app.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
+			if event.Key() == tcell.KeyRight || event.Key() == tcell.KeyTab {
+				currentTab = (currentTab + 1) % len(results)
+				tabBar.Highlight(fmt.Sprintf("page_%d", currentTab))
+				return nil
+			} else if event.Key() == tcell.KeyLeft {
+				currentTab = (currentTab - 1 + len(results)) % len(results)
+				tabBar.Highlight(fmt.Sprintf("page_%d", currentTab))
+				return nil
+			} else if event.Key() == tcell.KeyEscape || event.Rune() == 'q' {
+				app.Stop()
+				return nil
+			}
+			return event
+		})
+
+		layout := tview.NewFlex().
+			SetDirection(tview.FlexRow).
+			AddItem(tabBar, 1, 1, false).
+			AddItem(pages, 0, 1, true)
+
+		if err := app.SetRoot(layout, true).EnableMouse(true).Run(); err != nil {
+			fmt.Fprintf(os.Stderr, "Error running TUI: %v\n", err)
+			os.Exit(1)
 		}
 	},
 }
