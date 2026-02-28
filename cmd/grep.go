@@ -91,6 +91,11 @@ var grepCmd = &cobra.Command{
 			filesToProcess = append(filesToProcess, path)
 		}
 
+		if len(filesToProcess) == 0 {
+			fmt.Println("File not found.")
+			os.Exit(1)
+		}
+
 		// 収集したファイルを順に処理する
 		for _, filePath := range filesToProcess {
 			// Excelファイルを開く
