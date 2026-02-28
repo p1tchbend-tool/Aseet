@@ -15,10 +15,15 @@ var grepFormula bool
 var grepIgnoreCase bool
 var grepRecursive bool
 
+// 対応するExcelファイルの拡張子かどうかを判定する
+func isExcelFile(ext string) bool {
+	return ext == ".xlsx" || ext == ".xlsm" || ext == ".xlam" || ext == ".xltm" || ext == ".xltx"
+}
+
 var grepCmd = &cobra.Command{
 	Use:   "grep [pattern] [file or directory]",
-	Short: "Excelファイルまたはディレクトリから指定した文字列を含む行を検索します。",
-	Long:  `指定されたExcelファイルまたはディレクトリ内の全シートから、指定した文字列を含む行を検索して表示します。`,
+	Short: "Search for lines containing the specified string from an Excel file or directory.",
+	Long:  `Search and display lines containing the specified string from all sheets in the specified Excel file or directory.`,
 	Args:  cobra.ExactArgs(2),
 	Run: func(cmd *cobra.Command, args []string) {
 		pattern := args[0]
@@ -26,6 +31,7 @@ var grepCmd = &cobra.Command{
 
 		var re *regexp.Regexp
 		var err error
+		// 大文字小文字を区別しないオプションが指定された場合
 		if grepIgnoreCase {
 			re, err = regexp.Compile("(?i)" + pattern)
 		} else {
@@ -36,6 +42,7 @@ var grepCmd = &cobra.Command{
 			os.Exit(1)
 		}
 
+		// 指定されたパスの情報を取得する
 		info, err := os.Stat(path)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "Error accessing path %s: %v\n", path, err)
@@ -43,7 +50,9 @@ var grepCmd = &cobra.Command{
 		}
 
 		var filesToProcess []string
+		// パスがディレクトリの場合
 		if info.IsDir() {
+			// 再帰的に検索する場合
 			if grepRecursive {
 				err := filepath.Walk(path, func(p string, info os.FileInfo, err error) error {
 					if err != nil {
@@ -51,7 +60,7 @@ var grepCmd = &cobra.Command{
 					}
 					if !info.IsDir() {
 						ext := strings.ToLower(filepath.Ext(p))
-						if ext == ".xlsx" || ext == ".xlsm" {
+						if isExcelFile(ext) {
 							filesToProcess = append(filesToProcess, p)
 						}
 					}
@@ -62,6 +71,7 @@ var grepCmd = &cobra.Command{
 					os.Exit(1)
 				}
 			} else {
+				// ディレクトリ直下のみを検索する場合
 				entries, err := os.ReadDir(path)
 				if err != nil {
 					fmt.Fprintf(os.Stderr, "Error reading directory %s: %v\n", path, err)
@@ -70,34 +80,42 @@ var grepCmd = &cobra.Command{
 				for _, entry := range entries {
 					if !entry.IsDir() {
 						ext := strings.ToLower(filepath.Ext(entry.Name()))
-						if ext == ".xlsx" || ext == ".xlsm" {
+						if isExcelFile(ext) {
 							filesToProcess = append(filesToProcess, filepath.Join(path, entry.Name()))
 						}
 					}
 				}
 			}
 		} else {
+			// パスがファイルの場合
 			filesToProcess = append(filesToProcess, path)
 		}
 
+		// 収集したファイルを順に処理する
 		for _, filePath := range filesToProcess {
+			// Excelファイルを開く
 			f, err := excelize.OpenFile(filePath)
 			if err != nil {
 				fmt.Fprintf(os.Stderr, "Error opening file %s: %v\n", filePath, err)
 				continue
 			}
 
+			// 全シートをループ処理する
 			for _, sheetName := range f.GetSheetList() {
+				// シートのすべての行を取得する
 				rows, err := f.GetRows(sheetName)
 				if err != nil {
 					fmt.Fprintf(os.Stderr, "Error getting rows from sheet %s in file %s: %v\n", sheetName, filePath, err)
 					continue
 				}
 
+				// 各行をループ処理する
 				for i, row := range rows {
 					isMatched := false
+					// 各セルをループ処理する
 					for c, cell := range row {
 						searchTarget := cell
+						// 数式を検索対象にする場合
 						if grepFormula {
 							cellName, err := excelize.CoordinatesToCellName(c+1, i+1)
 							if err == nil {
@@ -108,17 +126,20 @@ var grepCmd = &cobra.Command{
 							}
 						}
 
+						// 正規表現でマッチするか判定する
 						if re.MatchString(searchTarget) {
 							isMatched = true
 							break
 						}
 					}
+					// マッチした場合、ファイル名、シート名、行番号を出力する
 					if isMatched {
 						fmt.Printf("[Matched] %s: %s: Row %d\n", filePath, sheetName, i+1)
 					}
 				}
 			}
 
+			// ファイルを閉じる
 			if err := f.Close(); err != nil {
 				fmt.Fprintln(os.Stderr, err)
 			}
@@ -127,8 +148,9 @@ var grepCmd = &cobra.Command{
 }
 
 func init() {
+	// コマンドとフラグを登録する
 	rootCmd.AddCommand(grepCmd)
-	grepCmd.Flags().BoolVarP(&grepFormula, "formula", "f", false, "セルに数式がある場合は数式を検索対象にします。")
-	grepCmd.Flags().BoolVarP(&grepIgnoreCase, "ignore-case", "i", false, "検索時に大文字小文字を区別しません。")
-	grepCmd.Flags().BoolVarP(&grepRecursive, "recursive", "r", false, "サブディレクトリまで再帰的に検索します。")
+	grepCmd.Flags().BoolVarP(&grepFormula, "formula", "f", false, "If a cell contains a formula, search the formula instead.")
+	grepCmd.Flags().BoolVarP(&grepIgnoreCase, "ignore-case", "i", false, "Ignore case distinctions during the search.")
+	grepCmd.Flags().BoolVarP(&grepRecursive, "recursive", "r", false, "Search recursively through subdirectories.")
 }
