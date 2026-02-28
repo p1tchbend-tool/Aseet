@@ -93,36 +93,59 @@ var diffCmd = &cobra.Command{
 			})
 		}
 
-		// 共通のシートについてセルの内容を比較する
-		sheetMap1 := make(map[string]bool)
+		// 全てのユニークなシート名を取得する
+		allSheetsMap := make(map[string]bool)
+		var allSheets []string
 		for _, s := range sheets1 {
-			sheetMap1[s] = true
+			if !allSheetsMap[s] {
+				allSheetsMap[s] = true
+				allSheets = append(allSheets, s)
+			}
+		}
+		for _, s := range sheets2 {
+			if !allSheetsMap[s] {
+				allSheetsMap[s] = true
+				allSheets = append(allSheets, s)
+			}
 		}
 
-		for _, sheet := range sheets2 {
-			if sheetMap1[sheet] {
-				// 1つ目のファイルのシートの行を取得する
+		// 各シートについてセルの内容を比較または出力する
+		for _, sheet := range allSheets {
+			in1 := false
+			for _, s := range sheets1 {
+				if s == sheet {
+					in1 = true
+					break
+				}
+			}
+			in2 := false
+			for _, s := range sheets2 {
+				if s == sheet {
+					in2 = true
+					break
+				}
+			}
+
+			if in1 && in2 {
+				// 両方のファイルに存在する場合、差分を計算する
 				rows1, err := f1.GetRows(sheet)
 				if err != nil {
 					fmt.Printf("Error reading sheet %s from %s\n", sheet, file1)
 					continue
 				}
 
-				// 2つ目のファイルのシートの行を取得する
 				rows2, err := f2.GetRows(sheet)
 				if err != nil {
 					fmt.Printf("Error reading sheet %s from %s\n", sheet, file2)
 					continue
 				}
 
-				// 行と列のアライメント（差分計算）を行う
 				rowAlign := align(rows1, rows2)
 				colAlign := align(transpose(rows1), transpose(rows2))
 
 				hasSheetDiff := false
 				var sheetOutput []string
 
-				// アライメント結果に基づいて各セルを比較する
 				for _, rPair := range rowAlign {
 					r1, r2 := rPair[0], rPair[1]
 					var diffCells []string
@@ -131,7 +154,6 @@ var diffCmd = &cobra.Command{
 						c1, c2 := cPair[0], cPair[1]
 						val1, val2 := "", ""
 
-						// セルの値を取得する
 						if r1 != -1 && c1 != -1 && r1 < len(rows1) && c1 < len(rows1[r1]) {
 							val1 = rows1[r1][c1]
 						}
@@ -139,7 +161,6 @@ var diffCmd = &cobra.Command{
 							val2 = rows2[r2][c2]
 						}
 
-						// 値が同じ場合はそのまま追加し、異なる場合は色付けして追加する
 						if val1 == val2 {
 							diffCells = append(diffCells, escapeCSVField(val1))
 						} else {
@@ -156,7 +177,6 @@ var diffCmd = &cobra.Command{
 						}
 					}
 
-					// 行番号を決定する
 					var rowNumStr string
 					if r1 != -1 {
 						rowNumStr = fmt.Sprintf("%d", r1+1)
@@ -167,13 +187,78 @@ var diffCmd = &cobra.Command{
 					sheetOutput = append(sheetOutput, fmt.Sprintf("Row %s: %s", rowNumStr, strings.Join(diffCells, ",")))
 				}
 
-				// シートに差分があった場合、結果に追加する
 				if hasSheetDiff {
 					results = append(results, diffResult{
 						title:   sheet,
 						content: strings.Join(sheetOutput, "\n"),
 					})
 				}
+			} else if in1 {
+				// 1つ目のファイルにのみ存在する場合、catコマンドと同様にそのまま出力する
+				rows1, err := f1.GetRows(sheet)
+				if err != nil {
+					fmt.Printf("Error reading sheet %s from %s\n", sheet, file1)
+					continue
+				}
+
+				// シート内の最大列数を取得する
+				maxCols := 0
+				for _, row := range rows1 {
+					if len(row) > maxCols {
+						maxCols = len(row)
+					}
+				}
+
+				var sheetOutput []string
+				for _, row := range rows1 {
+					var cells []string
+					for c := 0; c < maxCols; c++ {
+						val := ""
+						if c < len(row) {
+							val = row[c]
+						}
+						cells = append(cells, escapeCSVField(val))
+					}
+					sheetOutput = append(sheetOutput, strings.Join(cells, ","))
+				}
+
+				results = append(results, diffResult{
+					title:   sheet,
+					content: strings.Join(sheetOutput, "\n"),
+				})
+			} else if in2 {
+				// 2つ目のファイルにのみ存在する場合、catコマンドと同様にそのまま出力する
+				rows2, err := f2.GetRows(sheet)
+				if err != nil {
+					fmt.Printf("Error reading sheet %s from %s\n", sheet, file2)
+					continue
+				}
+
+				// シート内の最大列数を取得する
+				maxCols := 0
+				for _, row := range rows2 {
+					if len(row) > maxCols {
+						maxCols = len(row)
+					}
+				}
+
+				var sheetOutput []string
+				for _, row := range rows2 {
+					var cells []string
+					for c := 0; c < maxCols; c++ {
+						val := ""
+						if c < len(row) {
+							val = row[c]
+						}
+						cells = append(cells, escapeCSVField(val))
+					}
+					sheetOutput = append(sheetOutput, strings.Join(cells, ","))
+				}
+
+				results = append(results, diffResult{
+					title:   sheet,
+					content: strings.Join(sheetOutput, "\n"),
+				})
 			}
 		}
 
