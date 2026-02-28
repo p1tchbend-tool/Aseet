@@ -3,6 +3,7 @@ module aseet
 go 1.26.0
 
 require (
+	github.com/pmezard/go-difflib v1.0.0
 	github.com/spf13/cobra v1.10.2
 	github.com/xuri/excelize/v2 v2.10.1
 )
