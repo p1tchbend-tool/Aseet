@@ -88,6 +88,9 @@ var diffCmd = &cobra.Command{
 					maxRows = len(rows2)
 				}
 
+				hasSheetDiff := false
+				var sheetOutput []string
+
 				for r := 0; r < maxRows; r++ {
 					var row1, row2 []string
 					if r < len(rows1) {
@@ -102,6 +105,7 @@ var diffCmd = &cobra.Command{
 						maxCols = len(row2)
 					}
 
+					var diffCells []string
 					for c := 0; c < maxCols; c++ {
 						val1, val2 := "", ""
 						if c < len(row1) {
@@ -111,19 +115,28 @@ var diffCmd = &cobra.Command{
 							val2 = row2[c]
 						}
 
-						if val1 != val2 {
-							cellName, err := excelize.CoordinatesToCellName(c+1, r+1)
-							if err != nil {
-								cellName = fmt.Sprintf("R%dC%d", r+1, c+1)
+						if val1 == val2 {
+							diffCells = append(diffCells, val1)
+						} else {
+							hasSheetDiff = true
+							var cellDiff string
+							if val1 != "" && val2 != "" {
+								cellDiff = fmt.Sprintf("%s-%s%s %s+%s%s", colorRed, val1, colorReset, colorGreen, val2, colorReset)
+							} else if val1 != "" {
+								cellDiff = fmt.Sprintf("%s-%s%s", colorRed, val1, colorReset)
+							} else if val2 != "" {
+								cellDiff = fmt.Sprintf("%s+%s%s", colorGreen, val2, colorReset)
 							}
-
-							if val1 != "" {
-								fmt.Printf("%s- %s!%s: %s%s\n", colorRed, sheet, cellName, val1, colorReset)
-							}
-							if val2 != "" {
-								fmt.Printf("%s+ %s!%s: %s%s\n", colorGreen, sheet, cellName, val2, colorReset)
-							}
+							diffCells = append(diffCells, cellDiff)
 						}
+					}
+					sheetOutput = append(sheetOutput, strings.Join(diffCells, ","))
+				}
+
+				if hasSheetDiff {
+					fmt.Printf("\n[diff %s]\n", sheet)
+					for _, line := range sheetOutput {
+						fmt.Println(line)
 					}
 				}
 			}
