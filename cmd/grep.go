@@ -38,14 +38,14 @@ var grepCmd = &cobra.Command{
 			re, err = regexp.Compile(pattern)
 		}
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "Error compiling regex: %v\n", err)
+			fmt.Printf("Error compiling regex: %v\n", err)
 			os.Exit(1)
 		}
 
 		// 指定されたパスの情報を取得する
 		info, err := os.Stat(path)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "Error accessing path %s: %v\n", path, err)
+			fmt.Printf("Error accessing path %s\n", path)
 			os.Exit(1)
 		}
 
@@ -67,14 +67,14 @@ var grepCmd = &cobra.Command{
 					return nil
 				})
 				if err != nil {
-					fmt.Fprintf(os.Stderr, "Error walking directory %s: %v\n", path, err)
+					fmt.Printf("Error walking directory %s", path)
 					os.Exit(1)
 				}
 			} else {
 				// ディレクトリ直下のみを検索する場合
 				entries, err := os.ReadDir(path)
 				if err != nil {
-					fmt.Fprintf(os.Stderr, "Error reading directory %s: %v\n", path, err)
+					fmt.Printf("Error reading directory %s\n", path)
 					os.Exit(1)
 				}
 				for _, entry := range entries {
@@ -96,7 +96,7 @@ var grepCmd = &cobra.Command{
 			// Excelファイルを開く
 			f, err := excelize.OpenFile(filePath)
 			if err != nil {
-				fmt.Fprintf(os.Stderr, "Error opening file %s: %v\n", filePath, err)
+				fmt.Printf("Error opening file %s\n", filePath)
 				continue
 			}
 
@@ -105,7 +105,7 @@ var grepCmd = &cobra.Command{
 				// シートのすべての行を取得する
 				rows, err := f.GetRows(sheetName)
 				if err != nil {
-					fmt.Fprintf(os.Stderr, "Error getting rows from sheet %s in file %s: %v\n", sheetName, filePath, err)
+					fmt.Printf("Error getting rows from sheet %s in file %s\n", sheetName, filePath)
 					continue
 				}
 
@@ -140,9 +140,7 @@ var grepCmd = &cobra.Command{
 			}
 
 			// ファイルを閉じる
-			if err := f.Close(); err != nil {
-				fmt.Fprintln(os.Stderr, err)
-			}
+			f.Close()
 		}
 	},
 }
