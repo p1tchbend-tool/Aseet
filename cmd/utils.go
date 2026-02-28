@@ -3,6 +3,8 @@ package cmd
 import (
 	"fmt"
 	"strings"
+
+	"github.com/xuri/excelize/v2"
 )
 
 // 対応するExcelファイルの拡張子かどうかを判定する
@@ -18,8 +20,15 @@ func escapeCSVField(value string) string {
 	return value
 }
 
-// シートの内容をカンマ区切りの文字列としてフォーマットする
-func formatSheetContents(rows [][]string) string {
+// シートの内容を文字列として取得する
+func getSheetContents(f *excelize.File, sheetName string, isFormula bool) (string, error) {
+	// シートのすべての行を取得する
+	rows, err := f.GetRows(sheetName)
+	if err != nil {
+		return "", err
+	}
+
+	// シート内の最大列数を取得する
 	maxCols := 0
 	for _, row := range rows {
 		if len(row) > maxCols {
@@ -27,17 +36,33 @@ func formatSheetContents(rows [][]string) string {
 		}
 	}
 
-	var output []string
-	for _, row := range rows {
-		var cells []string
+	var sb strings.Builder
+	// 各行をループ処理する
+	for r, row := range rows {
+		var outputCells []string
+		// 最大列数に合わせて各セルをループ処理する
 		for c := 0; c < maxCols; c++ {
-			val := ""
+			var value string
 			if c < len(row) {
-				val = row[c]
+				value = row[c]
 			}
-			cells = append(cells, escapeCSVField(val))
+
+			// セルの座標からセル名（例: A1）を取得する
+			cellName, _ := excelize.CoordinatesToCellName(c+1, r+1)
+
+			// 数式を取得する
+			formula, err := f.GetCellFormula(sheetName, cellName)
+
+			// 数式フラグが有効かつ数式が存在する場合
+			if isFormula && err == nil && formula != "" {
+				outputCells = append(outputCells, escapeCSVField(formula))
+			} else {
+				// 値を取得する
+				outputCells = append(outputCells, escapeCSVField(value))
+			}
 		}
-		output = append(output, strings.Join(cells, ","))
+		// セルの値をカンマ区切りで結合し、改行を追加する
+		sb.WriteString(strings.Join(outputCells, ",") + "\n")
 	}
-	return strings.Join(output, "\n")
+	return sb.String(), nil
 }

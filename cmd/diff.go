@@ -26,6 +26,8 @@ type diffResult struct {
 	content string
 }
 
+var diffFormula bool
+
 var diffCmd = &cobra.Command{
 	Use:   "diff [file1] [file2]",
 	Short: "Compare sheet names and cell contents of two Excel files",
@@ -176,34 +178,37 @@ var diffCmd = &cobra.Command{
 					})
 				} else {
 					// 差分が全くない場合、catコマンドと同様にそのまま出力する
+					content, err := getSheetContents(f1, sheet, diffFormula)
+					if err != nil {
+						fmt.Printf("Error reading sheet %s\n", sheet)
+						continue
+					}
 					results = append(results, diffResult{
 						title:   sheet,
-						content: formatSheetContents(rows1),
+						content: content,
 					})
 				}
 			} else if in1 {
 				// 1つ目のファイルにのみ存在する場合、catコマンドと同様にそのまま出力する
-				rows1, err := f1.GetRows(sheet)
+				content, err := getSheetContents(f1, sheet, diffFormula)
 				if err != nil {
-					fmt.Printf("Error reading sheet %s from %s\n", sheet, file1)
+					fmt.Printf("Error reading sheet %s\n", sheet)
 					continue
 				}
-
 				results = append(results, diffResult{
 					title:   fmt.Sprintf("%s%s:%s%s", colorLightOrange, filepath.Base(file1), sheet, colorReset),
-					content: formatSheetContents(rows1),
+					content: content,
 				})
 			} else if in2 {
 				// 2つ目のファイルにのみ存在する場合、catコマンドと同様にそのまま出力する
-				rows2, err := f2.GetRows(sheet)
+				content, _ := getSheetContents(f2, sheet, diffFormula)
 				if err != nil {
-					fmt.Printf("Error reading sheet %s from %s\n", sheet, file2)
+					fmt.Printf("Error reading sheet %s\n", sheet)
 					continue
 				}
-
 				results = append(results, diffResult{
 					title:   fmt.Sprintf("%s%s:%s%s", colorLightBlue, filepath.Base(file2), sheet, colorReset),
-					content: formatSheetContents(rows2),
+					content: content,
 				})
 			}
 		}
@@ -287,6 +292,7 @@ var diffCmd = &cobra.Command{
 func init() {
 	// コマンドを登録する
 	rootCmd.AddCommand(diffCmd)
+	catCmd.Flags().BoolVarP(&diffFormula, "formula", "f", false, "If the cell value is a formula, compare the formula instead of the value.")
 }
 
 // 空でないセルの数をカウントする
