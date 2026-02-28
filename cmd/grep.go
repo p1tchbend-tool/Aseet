@@ -115,16 +115,14 @@ var grepCmd = &cobra.Command{
 				for i, row := range rows {
 					isMatched := false
 					// 各セルをループ処理する
-					for c, cell := range row {
-						searchTarget := cell
+					for c, value := range row {
+						searchTarget := value
 						// 数式を検索対象にする場合
 						if grepFormula {
 							cellName, err := excelize.CoordinatesToCellName(c+1, i+1)
-							if err == nil {
-								formula, err := f.GetCellFormula(sheetName, cellName)
-								if err == nil && formula != "" {
-									searchTarget = formula
-								}
+							formula, err := f.GetCellFormula(sheetName, cellName)
+							if err == nil && formula != "" {
+								searchTarget = formula
 							}
 						}
 
