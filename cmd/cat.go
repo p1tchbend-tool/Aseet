@@ -31,12 +31,25 @@ func getSheetContents(f *excelize.File, sheetName string) (string, error) {
 		return "", err
 	}
 
+	// シート内の最大列数を取得する
+	maxCols := 0
+	for _, row := range rows {
+		if len(row) > maxCols {
+			maxCols = len(row)
+		}
+	}
+
 	var sb strings.Builder
 	// 各行をループ処理する
 	for r, row := range rows {
 		var outputCells []string
-		// 各セルをループ処理する
-		for c, originalValue := range row {
+		// 最大列数に合わせて各セルをループ処理する
+		for c := 0; c < maxCols; c++ {
+			var originalValue string
+			if c < len(row) {
+				originalValue = row[c]
+			}
+
 			// セルの座標からセル名（例: A1）を取得する
 			cellName, _ := excelize.CoordinatesToCellName(c+1, r+1)
 
