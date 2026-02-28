@@ -3,9 +3,7 @@ package cmd
 import (
 	"fmt"
 	"os"
-	"os/exec"
 	"path/filepath"
-	"runtime"
 	"strings"
 
 	"github.com/gdamore/tcell/v2"
@@ -67,7 +65,6 @@ var diffCmd = &cobra.Command{
 
 			openFile(localPath)
 			openFile(remotePath)
-			return
 		}
 
 		// 1つ目のExcelファイルを開く
@@ -327,32 +324,6 @@ func init() {
 	rootCmd.AddCommand(diffCmd)
 	diffCmd.Flags().BoolVarP(&diffFormula, "formula", "f", false, "If the cell value is a formula, compare the formula instead of the value.")
 	diffCmd.Flags().BoolVarP(&diffOpen, "open", "o", false, "Copy the two files to the cache directory with [LOCAL] and [REMOTE] prefixes and open them.")
-}
-
-// ファイルをコピーする
-func copyFile(src, dst string) error {
-	input, err := os.ReadFile(src)
-	if err != nil {
-		return err
-	}
-	return os.WriteFile(dst, input, 0644)
-}
-
-// OSの関連付けられたアプリケーションでファイルを開く
-func openFile(path string) {
-	var cmd *exec.Cmd
-	switch runtime.GOOS {
-	case "windows":
-		cmd = exec.Command("cmd", "/c", "start", "", path)
-	case "darwin":
-		cmd = exec.Command("open", path)
-	default: // linux, etc
-		cmd = exec.Command("xdg-open", path)
-	}
-	err := cmd.Start()
-	if err != nil {
-		fmt.Printf("Error opening file %s: %v\n", path, err)
-	}
 }
 
 // 空でないセルの数をカウントする

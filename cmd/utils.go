@@ -2,6 +2,9 @@ package cmd
 
 import (
 	"fmt"
+	"os"
+	"os/exec"
+	"runtime"
 	"strings"
 
 	"github.com/xuri/excelize/v2"
@@ -82,4 +85,30 @@ func getSheetContents(f *excelize.File, sheetName string, isFormula bool) (strin
 		sb.WriteString(strings.Join(outputCells, ",") + "\n")
 	}
 	return sb.String(), nil
+}
+
+// ファイルをコピーする
+func copyFile(src, dst string) error {
+	input, err := os.ReadFile(src)
+	if err != nil {
+		return err
+	}
+	return os.WriteFile(dst, input, 0644)
+}
+
+// OSの関連付けられたアプリケーションでファイルを開く
+func openFile(path string) {
+	var cmd *exec.Cmd
+	switch runtime.GOOS {
+	case "windows":
+		cmd = exec.Command("cmd", "/c", "start", "", path)
+	case "darwin":
+		cmd = exec.Command("open", path)
+	default: // linux, etc
+		cmd = exec.Command("xdg-open", path)
+	}
+	err := cmd.Start()
+	if err != nil {
+		fmt.Printf("Error opening file %s: %v\n", path, err)
+	}
 }
