@@ -133,7 +133,15 @@ var diffCmd = &cobra.Command{
 							diffCells = append(diffCells, cellDiff)
 						}
 					}
-					sheetOutput = append(sheetOutput, strings.Join(diffCells, ","))
+					
+					var rowNumStr string
+					if r1 != -1 {
+						rowNumStr = fmt.Sprintf("%d", r1+1)
+					} else {
+						rowNumStr = fmt.Sprintf("%d", r2+1)
+					}
+					
+					sheetOutput = append(sheetOutput, fmt.Sprintf("Row %s: %s", rowNumStr, strings.Join(diffCells, ",")))
 				}
 
 				if hasSheetDiff {
