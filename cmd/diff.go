@@ -12,12 +12,14 @@ import (
 	"github.com/xuri/excelize/v2"
 )
 
+// 差分表示用のカラーコード
 const (
 	colorLightOrange = "[#ffaf00]"
 	colorLightBlue   = "[#87d7ff]"
 	colorReset       = "[-]"
 )
 
+// シートごとの差分結果を保持する構造体
 type diffResult struct {
 	title   string
 	content string
@@ -32,6 +34,7 @@ var diffCmd = &cobra.Command{
 		file1 := args[0]
 		file2 := args[1]
 
+		// 1つ目のExcelファイルを開く
 		f1, err := excelize.OpenFile(file1)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "Error opening file %s: %v\n", file1, err)
@@ -39,6 +42,7 @@ var diffCmd = &cobra.Command{
 		}
 		defer f1.Close()
 
+		// 2つ目のExcelファイルを開く
 		f2, err := excelize.OpenFile(file2)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "Error opening file %s: %v\n", file2, err)
@@ -48,12 +52,14 @@ var diffCmd = &cobra.Command{
 
 		var results []diffResult
 
+		// 両方のファイルからシート名のリストを取得する
 		sheets1 := f1.GetSheetList()
 		sheets2 := f2.GetSheetList()
 
 		text1 := strings.Join(sheets1, "\n") + "\n"
 		text2 := strings.Join(sheets2, "\n") + "\n"
 
+		// シート名のリストを比較するためのUnified Diffを設定する
 		diff := difflib.UnifiedDiff{
 			A:        difflib.SplitLines(text1),
 			B:        difflib.SplitLines(text2),
@@ -62,6 +68,7 @@ var diffCmd = &cobra.Command{
 			Context:  3,
 		}
 
+		// 差分文字列を生成する
 		text, err := difflib.GetUnifiedDiffString(diff)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "Error generating diff: %v\n", err)
@@ -69,11 +76,11 @@ var diffCmd = &cobra.Command{
 		}
 
 		if text != "" {
-			// Colorize unified diff output
+			// Unified Diffの出力を色付けする
 			lines := strings.Split(text, "\n")
 			for i, line := range lines {
 				if strings.HasPrefix(line, "---") || strings.HasPrefix(line, "+++") {
-					// Keep original for file headers
+					// ファイルヘッダーはそのままにする
 				} else if strings.HasPrefix(line, "-") {
 					lines[i] = colorLightOrange + line + colorReset
 				} else if strings.HasPrefix(line, "+") {
@@ -86,7 +93,7 @@ var diffCmd = &cobra.Command{
 			})
 		}
 
-		// Compare cell contents for common sheets
+		// 共通のシートについてセルの内容を比較する
 		sheetMap1 := make(map[string]bool)
 		for _, s := range sheets1 {
 			sheetMap1[s] = true
@@ -94,24 +101,28 @@ var diffCmd = &cobra.Command{
 
 		for _, sheet := range sheets2 {
 			if sheetMap1[sheet] {
+				// 1つ目のファイルのシートの行を取得する
 				rows1, err := f1.GetRows(sheet)
 				if err != nil {
 					fmt.Fprintf(os.Stderr, "Error reading sheet %s from %s: %v\n", sheet, file1, err)
 					continue
 				}
 
+				// 2つ目のファイルのシートの行を取得する
 				rows2, err := f2.GetRows(sheet)
 				if err != nil {
 					fmt.Fprintf(os.Stderr, "Error reading sheet %s from %s: %v\n", sheet, file2, err)
 					continue
 				}
 
+				// 行と列のアライメント（差分計算）を行う
 				rowAlign := align(rows1, rows2)
 				colAlign := align(transpose(rows1), transpose(rows2))
 
 				hasSheetDiff := false
 				var sheetOutput []string
 
+				// アライメント結果に基づいて各セルを比較する
 				for _, rPair := range rowAlign {
 					r1, r2 := rPair[0], rPair[1]
 					var diffCells []string
@@ -120,6 +131,7 @@ var diffCmd = &cobra.Command{
 						c1, c2 := cPair[0], cPair[1]
 						val1, val2 := "", ""
 
+						// セルの値を取得する
 						if r1 != -1 && c1 != -1 && r1 < len(rows1) && c1 < len(rows1[r1]) {
 							val1 = rows1[r1][c1]
 						}
@@ -127,6 +139,7 @@ var diffCmd = &cobra.Command{
 							val2 = rows2[r2][c2]
 						}
 
+						// 値が同じ場合はそのまま追加し、異なる場合は色付けして追加する
 						if val1 == val2 {
 							diffCells = append(diffCells, val1)
 						} else {
@@ -143,6 +156,7 @@ var diffCmd = &cobra.Command{
 						}
 					}
 
+					// 行番号を決定する
 					var rowNumStr string
 					if r1 != -1 {
 						rowNumStr = fmt.Sprintf("%d", r1+1)
@@ -153,6 +167,7 @@ var diffCmd = &cobra.Command{
 					sheetOutput = append(sheetOutput, fmt.Sprintf("Row %s: %s", rowNumStr, strings.Join(diffCells, ",")))
 				}
 
+				// シートに差分があった場合、結果に追加する
 				if hasSheetDiff {
 					results = append(results, diffResult{
 						title:   sheet,
@@ -162,14 +177,17 @@ var diffCmd = &cobra.Command{
 			}
 		}
 
+		// 差分が全くない場合の処理
 		if len(results) == 0 {
 			fmt.Println("No differences found.")
 			return
 		}
 
+		// TUIアプリケーションとページコンテナの構築
 		app := tview.NewApplication()
 		pages := tview.NewPages()
 
+		// タブバーの作成と設定
 		tabBar := tview.NewTextView().
 			SetDynamicColors(true).
 			SetRegions(true).
@@ -182,6 +200,7 @@ var diffCmd = &cobra.Command{
 		tabBar.SetBackgroundColor(tcell.ColorDefault)
 
 		var tabTitles []string
+		// 各シートの差分結果をページとして追加する
 		for i, res := range results {
 			pageID := fmt.Sprintf("page_%d", i)
 			tabTitles = append(tabTitles, fmt.Sprintf(`["%s"] %s [""]`, pageID, res.title))
@@ -196,11 +215,13 @@ var diffCmd = &cobra.Command{
 			pages.AddPage(pageID, textView, true, i == 0)
 		}
 
+		// タブバーにタイトルを設定し、最初のタブをハイライトする
 		tabBar.SetText(strings.Join(tabTitles, " | "))
 		if len(results) > 0 {
 			tabBar.Highlight(fmt.Sprintf("page_%d", 0))
 		}
 
+		// キー入力のハンドリング（タブ切り替えと終了）
 		currentTab := 0
 		app.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
 			if event.Key() == tcell.KeyRight || event.Key() == tcell.KeyTab {
@@ -218,11 +239,13 @@ var diffCmd = &cobra.Command{
 			return event
 		})
 
+		// レイアウトの組み立て（上にタブバー、下にページ内容）
 		layout := tview.NewFlex().
 			SetDirection(tview.FlexRow).
 			AddItem(tabBar, 1, 1, false).
 			AddItem(pages, 0, 1, true)
 
+		// TUIアプリケーションを実行する
 		if err := app.SetRoot(layout, true).EnableMouse(true).Run(); err != nil {
 			fmt.Fprintf(os.Stderr, "Error running TUI: %v\n", err)
 			os.Exit(1)
@@ -231,9 +254,11 @@ var diffCmd = &cobra.Command{
 }
 
 func init() {
+	// コマンドを登録する
 	rootCmd.AddCommand(diffCmd)
 }
 
+// 空でないセルの数をカウントする
 func countNonEmpty(row []string) int {
 	c := 0
 	for _, v := range row {
@@ -244,6 +269,7 @@ func countNonEmpty(row []string) int {
 	return c
 }
 
+// 2次元配列（マトリックス）を転置する
 func transpose(matrix [][]string) [][]string {
 	maxCol := 0
 	for _, row := range matrix {
@@ -263,19 +289,24 @@ func transpose(matrix [][]string) [][]string {
 	return res
 }
 
+// 動的計画法（DP）を用いて2つの2次元配列のアライメント（差分）を計算する
 func align(a, b [][]string) [][2]int {
 	n, m := len(a), len(b)
 	dp := make([][]int, n+1)
 	for i := range dp {
 		dp[i] = make([]int, m+1)
 	}
+	
+	// 初期化：削除コスト
 	for i := 1; i <= n; i++ {
 		dp[i][0] = dp[i-1][0] + countNonEmpty(a[i-1])
 	}
+	// 初期化：挿入コスト
 	for j := 1; j <= m; j++ {
 		dp[0][j] = dp[0][j-1] + countNonEmpty(b[j-1])
 	}
 
+	// DPテーブルを埋める
 	for i := 1; i <= n; i++ {
 		for j := 1; j <= m; j++ {
 			costDel := dp[i-1][j] + countNonEmpty(a[i-1])
@@ -311,6 +342,7 @@ func align(a, b [][]string) [][2]int {
 		}
 	}
 
+	// バックトラックして最適なパス（アライメント）を復元する
 	var path [][2]int
 	i, j := n, m
 	for i > 0 || j > 0 {
