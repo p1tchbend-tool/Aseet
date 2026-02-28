@@ -14,24 +14,15 @@ var clearCmd = &cobra.Command{
 	Long:  `aseet/temp フォルダにあるすべての一時ファイルを削除します。`,
 	Args:  cobra.NoArgs,
 	Run: func(cmd *cobra.Command, args []string) {
-		cacheDir, err := os.UserCacheDir()
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "Error getting user cache dir: %v\n", err)
-			os.Exit(1)
-		}
-		tempDir := filepath.Join(cacheDir, "aseet", "temp")
+		cacheDir, _ := os.UserCacheDir()
+		tempDir := filepath.Join(cacheDir, "aseet")
 
 		if _, err := os.Stat(tempDir); os.IsNotExist(err) {
 			fmt.Println("一時ファイルはありません。")
 			return
 		}
 
-		files, err := os.ReadDir(tempDir)
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "一時ディレクトリの読み込み中にエラーが発生しました: %v\n", err)
-			os.Exit(1)
-		}
-
+		files, _ := os.ReadDir(tempDir)
 		if len(files) == 0 {
 			fmt.Println("一時ファイルはありません。")
 			return
@@ -40,11 +31,11 @@ var clearCmd = &cobra.Command{
 		for _, file := range files {
 			filePath := filepath.Join(tempDir, file.Name())
 			if err := os.RemoveAll(filePath); err != nil {
-				fmt.Fprintf(os.Stderr, "ファイル '%s' の削除中にエラーが発生しました: %v\n", filePath, err)
+				fmt.Printf("ファイル '%s' の削除中にエラーが発生しました\n", filePath)
+			} else {
+				fmt.Printf("ファイル '%s' を削除しました\n", filePath)
 			}
 		}
-
-		fmt.Println("一時ファイルを削除しました。")
 	},
 }
 
