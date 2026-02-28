@@ -11,9 +11,10 @@ import (
 )
 
 const (
-	colorRed   = "\033[31m"
-	colorGreen = "\033[32m"
-	colorReset = "\033[0m"
+	colorLightOrange = "\033[38;5;215m"
+	colorLightBlue   = "\033[38;5;117m"
+	colorCyan        = "\033[36m"
+	colorReset       = "\033[0m"
 )
 
 var diffCmd = &cobra.Command{
@@ -60,7 +61,20 @@ var diffCmd = &cobra.Command{
 		}
 
 		if text != "" {
-			fmt.Print(text)
+			// Colorize unified diff output
+			lines := strings.Split(text, "\n")
+			for i, line := range lines {
+				if strings.HasPrefix(line, "---") || strings.HasPrefix(line, "+++") {
+					// Keep original for file headers
+				} else if strings.HasPrefix(line, "-") {
+					lines[i] = colorLightOrange + line + colorReset
+				} else if strings.HasPrefix(line, "+") {
+					lines[i] = colorLightBlue + line + colorReset
+				} else if strings.HasPrefix(line, "@@") {
+					lines[i] = colorCyan + line + colorReset
+				}
+			}
+			fmt.Print(strings.Join(lines, "\n"))
 		}
 
 		// Compare cell contents for common sheets
@@ -110,11 +124,11 @@ var diffCmd = &cobra.Command{
 							hasSheetDiff = true
 							var cellDiff string
 							if val1 != "" && val2 != "" {
-								cellDiff = fmt.Sprintf("%s-%s%s %s+%s%s", colorRed, val1, colorReset, colorGreen, val2, colorReset)
+								cellDiff = fmt.Sprintf("%s-%s%s %s+%s%s", colorLightOrange, val1, colorReset, colorLightBlue, val2, colorReset)
 							} else if val1 != "" {
-								cellDiff = fmt.Sprintf("%s-%s%s", colorRed, val1, colorReset)
+								cellDiff = fmt.Sprintf("%s-%s%s", colorLightOrange, val1, colorReset)
 							} else if val2 != "" {
-								cellDiff = fmt.Sprintf("%s+%s%s", colorGreen, val2, colorReset)
+								cellDiff = fmt.Sprintf("%s+%s%s", colorLightBlue, val2, colorReset)
 							}
 							diffCells = append(diffCells, cellDiff)
 						}
