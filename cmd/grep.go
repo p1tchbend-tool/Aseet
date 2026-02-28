@@ -44,51 +44,45 @@ var grepCmd = &cobra.Command{
 
 		// 指定されたパスの情報を取得する
 		info, err := os.Stat(path)
-		if err != nil {
-			fmt.Printf("Error accessing path %s\n", path)
-			os.Exit(1)
-		}
 
 		var filesToProcess []string
-		// パスがディレクトリの場合
-		if info.IsDir() {
-			// 再帰的に検索する場合
-			if grepRecursive {
-				err := filepath.Walk(path, func(p string, info os.FileInfo, err error) error {
-					if err != nil {
-						return err
-					}
-					if !info.IsDir() {
-						ext := strings.ToLower(filepath.Ext(p))
-						if isExcelFile(ext) {
-							filesToProcess = append(filesToProcess, p)
+		// エラーがなく、パスが存在する場合
+		if err == nil {
+			// パスがディレクトリの場合
+			if info.IsDir() {
+				// 再帰的に検索する場合
+				if grepRecursive {
+					_ = filepath.Walk(path, func(p string, info os.FileInfo, err error) error {
+						if err != nil {
+							// 探索中のエラー（アクセス権限など）は無視して続行する
+							return nil
+						}
+						if !info.IsDir() {
+							ext := strings.ToLower(filepath.Ext(p))
+							if isExcelFile(ext) {
+								filesToProcess = append(filesToProcess, p)
+							}
+						}
+						return nil
+					})
+				} else {
+					// ディレクトリ直下のみを検索する場合
+					entries, err := os.ReadDir(path)
+					if err == nil {
+						for _, entry := range entries {
+							if !entry.IsDir() {
+								ext := strings.ToLower(filepath.Ext(entry.Name()))
+								if isExcelFile(ext) {
+									filesToProcess = append(filesToProcess, filepath.Join(path, entry.Name()))
+								}
+							}
 						}
 					}
-					return nil
-				})
-				if err != nil {
-					fmt.Printf("Error walking directory %s", path)
-					os.Exit(1)
 				}
 			} else {
-				// ディレクトリ直下のみを検索する場合
-				entries, err := os.ReadDir(path)
-				if err != nil {
-					fmt.Printf("Error reading directory %s\n", path)
-					os.Exit(1)
-				}
-				for _, entry := range entries {
-					if !entry.IsDir() {
-						ext := strings.ToLower(filepath.Ext(entry.Name()))
-						if isExcelFile(ext) {
-							filesToProcess = append(filesToProcess, filepath.Join(path, entry.Name()))
-						}
-					}
-				}
+				// パスがファイルの場合
+				filesToProcess = append(filesToProcess, path)
 			}
-		} else {
-			// パスがファイルの場合
-			filesToProcess = append(filesToProcess, path)
 		}
 
 		if len(filesToProcess) == 0 {
