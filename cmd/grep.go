@@ -15,11 +15,6 @@ var grepFormula bool
 var grepIgnoreCase bool
 var grepRecursive bool
 
-// 対応するExcelファイルの拡張子かどうかを判定する
-func isExcelFile(ext string) bool {
-	return ext == ".xlsx" || ext == ".xlsm" || ext == ".xlam" || ext == ".xltm" || ext == ".xltx"
-}
-
 var grepCmd = &cobra.Command{
 	Use:   "grep [pattern] [file or directory]",
 	Short: "Search for lines containing the specified string from an Excel file or directory.",

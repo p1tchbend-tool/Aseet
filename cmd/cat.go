@@ -15,14 +15,6 @@ var all bool
 var catFormula bool
 var sheetName string
 
-// セルの値にカンマが含まれる場合はダブルクォーテーションで囲む
-func escapeCSVField(value string) string {
-	if strings.Contains(value, ",") {
-		return fmt.Sprintf("\"%s\"", strings.ReplaceAll(value, "\"", "\"\""))
-	}
-	return value
-}
-
 // シートの内容を文字列として取得する
 func getSheetContents(f *excelize.File, sheetName string) (string, error) {
 	// シートのすべての行を取得する
