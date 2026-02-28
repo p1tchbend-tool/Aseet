@@ -11,7 +11,7 @@ import (
 var clearCmd = &cobra.Command{
 	Use:   "clear",
 	Short: "Delete temporary files.",
-	Long:  `Delete all temporary files in the aseet/temp folder.`,
+	Long:  `Delete all temporary files in the aseet folder.`,
 	Args:  cobra.NoArgs,
 	Run: func(cmd *cobra.Command, args []string) {
 		cacheDir, _ := os.UserCacheDir()
