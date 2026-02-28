@@ -87,6 +87,7 @@ var grepCmd = &cobra.Command{
 			filesToProcess = append(filesToProcess, path)
 		}
 
+		// ファイルが見つからなかった場合
 		if len(filesToProcess) == 0 {
 			fmt.Println("File not found.")
 			os.Exit(1)
