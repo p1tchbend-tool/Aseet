@@ -37,15 +37,27 @@ func getSheetContents(f *excelize.File, sheetName string) (string, error) {
 
 			// 数式フラグが有効かつ数式が存在する場合
 			if catFormula && err == nil && formulaText != "" {
-				outputCells = append(outputCells, fmt.Sprintf("\"%s\"", strings.ReplaceAll(formulaText, "\"", "\"\"")))
+				if strings.Contains(formulaText, ",") {
+					outputCells = append(outputCells, fmt.Sprintf("\"%s\"", strings.ReplaceAll(formulaText, "\"", "\"\"")))
+				} else {
+					outputCells = append(outputCells, formulaText)
+				}
 			} else {
 				// セルの値を取得する
 				value, err := f.GetCellValue(sheetName, cellName)
 				if err != nil {
 					// GetCellValueが失敗した場合は元の値にフォールバックする
-					outputCells = append(outputCells, fmt.Sprintf("\"%s\"", strings.ReplaceAll(originalValue, "\"", "\"\"")))
+					if strings.Contains(originalValue, ",") {
+						outputCells = append(outputCells, fmt.Sprintf("\"%s\"", strings.ReplaceAll(originalValue, "\"", "\"\"")))
+					} else {
+						outputCells = append(outputCells, originalValue)
+					}
 				} else {
-					outputCells = append(outputCells, fmt.Sprintf("\"%s\"", strings.ReplaceAll(value, "\"", "\"\"")))
+					if strings.Contains(value, ",") {
+						outputCells = append(outputCells, fmt.Sprintf("\"%s\"", strings.ReplaceAll(value, "\"", "\"\"")))
+					} else {
+						outputCells = append(outputCells, value)
+					}
 				}
 			}
 		}
