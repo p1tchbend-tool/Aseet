@@ -31,10 +31,10 @@ func getSheetContents(f *excelize.File, sheetName string) (string, error) {
 		for c, originalValue := range row {
 			// セルの座標からセル名（例: A1）を取得する
 			cellName, _ := excelize.CoordinatesToCellName(c+1, r+1)
-			
+
 			// 数式を取得する
 			formulaText, err := f.GetCellFormula(sheetName, cellName)
-			
+
 			// 数式フラグが有効かつ数式が存在する場合
 			if catFormula && err == nil && formulaText != "" {
 				outputCells = append(outputCells, fmt.Sprintf("\"%s\"", strings.ReplaceAll(formulaText, "\"", "\"\"")))
@@ -55,18 +55,6 @@ func getSheetContents(f *excelize.File, sheetName string) (string, error) {
 	return sb.String(), nil
 }
 
-// シートの内容を標準出力に表示する
-func printSheetContents(f *excelize.File, sheetName string) error {
-	// シートの内容を取得する
-	content, err := getSheetContents(f, sheetName)
-	if err != nil {
-		return err
-	}
-	// 内容を出力する
-	fmt.Print(content)
-	return nil
-}
-
 var catCmd = &cobra.Command{
 	Use:   "cat [file]",
 	Short: "Output sheet names or cell values of an Excel file.",
@@ -78,17 +66,20 @@ var catCmd = &cobra.Command{
 		// Excelファイルを開く
 		f, err := excelize.OpenFile(filePath)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "Error opening file %s: %v\n", filePath, err)
+			fmt.Printf("Error opening file %s\n", filePath)
 			os.Exit(1)
 		}
 		defer f.Close()
 
 		// 特定のシート名が指定された場合の処理
 		if sheetName != "" {
-			if err := printSheetContents(f, sheetName); err != nil {
-				fmt.Fprintf(os.Stderr, "Error reading sheet %s: %v\n", sheetName, err)
+			content, err := getSheetContents(f, sheetName)
+			if err != nil {
+				fmt.Printf("Error reading sheet %s\n", sheetName)
 				os.Exit(1)
 			}
+			fmt.Print(content)
+
 		} else if all {
 			// --allオプションが指定された場合、全シートをTUIで表示する
 			type sheetResult struct {
@@ -101,7 +92,7 @@ var catCmd = &cobra.Command{
 			for _, sheet := range f.GetSheetList() {
 				content, err := getSheetContents(f, sheet)
 				if err != nil {
-					fmt.Fprintf(os.Stderr, "Error reading sheet %s: %v\n", sheet, err)
+					fmt.Printf("Error reading sheet %s\n", sheet)
 					continue
 				}
 				results = append(results, sheetResult{
@@ -186,6 +177,7 @@ var catCmd = &cobra.Command{
 				fmt.Fprintf(os.Stderr, "Error running TUI: %v\n", err)
 				os.Exit(1)
 			}
+
 		} else {
 			// オプションがない場合、シート名の一覧を出力する
 			for _, sheet := range f.GetSheetList() {
