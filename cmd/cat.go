@@ -60,11 +60,7 @@ var catCmd = &cobra.Command{
 			fmt.Fprintf(os.Stderr, "ファイル %s を開く際にエラーが発生しました: %v\n", filePath, err)
 			os.Exit(1)
 		}
-		defer func() {
-			if err := f.Close(); err != nil {
-				fmt.Fprintf(os.Stderr, "ファイル %s を閉じる際にエラーが発生しました: %v\n", filePath, err)
-			}
-		}()
+		defer f.Close()
 
 		if sheetName != "" {
 			if err := printSheetContents(f, sheetName); err != nil {
