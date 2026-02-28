@@ -37,7 +37,7 @@ var diffCmd = &cobra.Command{
 		// 1つ目のExcelファイルを開く
 		f1, err := excelize.OpenFile(file1)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "Error opening file %s: %v\n", file1, err)
+			fmt.Printf("Error opening file %s\n", file1)
 			os.Exit(1)
 		}
 		defer f1.Close()
@@ -45,7 +45,7 @@ var diffCmd = &cobra.Command{
 		// 2つ目のExcelファイルを開く
 		f2, err := excelize.OpenFile(file2)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "Error opening file %s: %v\n", file2, err)
+			fmt.Printf("Error opening file %s\n", file2)
 			os.Exit(1)
 		}
 		defer f2.Close()
@@ -71,7 +71,7 @@ var diffCmd = &cobra.Command{
 		// 差分文字列を生成する
 		text, err := difflib.GetUnifiedDiffString(diff)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "Error generating diff: %v\n", err)
+			fmt.Printf("Error generating diff: %v\n", err)
 			os.Exit(1)
 		}
 
@@ -104,14 +104,14 @@ var diffCmd = &cobra.Command{
 				// 1つ目のファイルのシートの行を取得する
 				rows1, err := f1.GetRows(sheet)
 				if err != nil {
-					fmt.Fprintf(os.Stderr, "Error reading sheet %s from %s: %v\n", sheet, file1, err)
+					fmt.Printf("Error reading sheet %s from %s\n", sheet, file1)
 					continue
 				}
 
 				// 2つ目のファイルのシートの行を取得する
 				rows2, err := f2.GetRows(sheet)
 				if err != nil {
-					fmt.Fprintf(os.Stderr, "Error reading sheet %s from %s: %v\n", sheet, file2, err)
+					fmt.Printf("Error reading sheet %s from %s\n", sheet, file2)
 					continue
 				}
 
@@ -247,7 +247,7 @@ var diffCmd = &cobra.Command{
 
 		// TUIアプリケーションを実行する
 		if err := app.SetRoot(layout, true).EnableMouse(true).Run(); err != nil {
-			fmt.Fprintf(os.Stderr, "Error running TUI: %v\n", err)
+			fmt.Printf("Error running TUI: %v\n", err)
 			os.Exit(1)
 		}
 	},
@@ -296,7 +296,7 @@ func align(a, b [][]string) [][2]int {
 	for i := range dp {
 		dp[i] = make([]int, m+1)
 	}
-	
+
 	// 初期化：削除コスト
 	for i := 1; i <= n; i++ {
 		dp[i][0] = dp[i-1][0] + countNonEmpty(a[i-1])
