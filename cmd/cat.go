@@ -45,29 +45,23 @@ func getSheetContents(f *excelize.File, sheetName string) (string, error) {
 		var outputCells []string
 		// 最大列数に合わせて各セルをループ処理する
 		for c := 0; c < maxCols; c++ {
-			var originalValue string
+			var value string
 			if c < len(row) {
-				originalValue = row[c]
+				value = row[c]
 			}
 
 			// セルの座標からセル名（例: A1）を取得する
 			cellName, _ := excelize.CoordinatesToCellName(c+1, r+1)
 
 			// 数式を取得する
-			formulaText, err := f.GetCellFormula(sheetName, cellName)
+			formula, err := f.GetCellFormula(sheetName, cellName)
 
 			// 数式フラグが有効かつ数式が存在する場合
-			if catFormula && err == nil && formulaText != "" {
-				outputCells = append(outputCells, escapeCSVField(formulaText))
+			if catFormula && err == nil && formula != "" {
+				outputCells = append(outputCells, escapeCSVField(formula))
 			} else {
-				// セルの値を取得する
-				value, err := f.GetCellValue(sheetName, cellName)
-				if err != nil {
-					// GetCellValueが失敗した場合は元の値にフォールバックする
-					outputCells = append(outputCells, escapeCSVField(originalValue))
-				} else {
-					outputCells = append(outputCells, escapeCSVField(value))
-				}
+				// 値を取得する
+				outputCells = append(outputCells, escapeCSVField(value))
 			}
 		}
 		// セルの値をカンマ区切りで結合し、改行を追加する
