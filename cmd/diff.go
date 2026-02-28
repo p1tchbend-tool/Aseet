@@ -399,27 +399,3 @@ func align(a, b [][]string) [][2]int {
 	}
 	return path
 }
-
-// シートの内容をカンマ区切りの文字列としてフォーマットする
-func formatSheetContents(rows [][]string) string {
-	maxCols := 0
-	for _, row := range rows {
-		if len(row) > maxCols {
-			maxCols = len(row)
-		}
-	}
-
-	var output []string
-	for _, row := range rows {
-		var cells []string
-		for c := 0; c < maxCols; c++ {
-			val := ""
-			if c < len(row) {
-				val = row[c]
-			}
-			cells = append(cells, escapeCSVField(val))
-		}
-		output = append(output, strings.Join(cells, ","))
-	}
-	return strings.Join(output, "\n")
-}
