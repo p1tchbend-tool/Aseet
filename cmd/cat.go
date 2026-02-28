@@ -195,7 +195,7 @@ var catCmd = &cobra.Command{
 
 			// TUIアプリケーションを実行する
 			if err := app.SetRoot(layout, true).EnableMouse(true).Run(); err != nil {
-				fmt.Fprintf(os.Stderr, "Error running TUI: %v\n", err)
+				fmt.Printf("Error running TUI: %v\n", err)
 				os.Exit(1)
 			}
 
