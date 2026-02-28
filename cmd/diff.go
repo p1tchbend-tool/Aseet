@@ -119,13 +119,13 @@ var diffCmd = &cobra.Command{
 
 			if in1 && in2 {
 				// 両方のファイルに存在する場合、差分を計算する
-				rows1, err := f1.GetRows(sheet)
+				rows1, err := getSheetData(f1, sheet, diffFormula)
 				if err != nil {
 					fmt.Printf("Error reading sheet %s from %s\n", sheet, file1)
 					continue
 				}
 
-				rows2, err := f2.GetRows(sheet)
+				rows2, err := getSheetData(f2, sheet, diffFormula)
 				if err != nil {
 					fmt.Printf("Error reading sheet %s from %s\n", sheet, file2)
 					continue
@@ -196,7 +196,7 @@ var diffCmd = &cobra.Command{
 					continue
 				}
 				results = append(results, diffResult{
-					title:   fmt.Sprintf("%s%s : %s%s", colorLightOrange, filepath.Base(file1), sheet, colorReset),
+					title:   fmt.Sprintf("%s%s:%s%s", colorLightOrange, filepath.Base(file1), sheet, colorReset),
 					content: content,
 				})
 			} else if in2 {
@@ -207,7 +207,7 @@ var diffCmd = &cobra.Command{
 					continue
 				}
 				results = append(results, diffResult{
-					title:   fmt.Sprintf("%s%s : %s%s", colorLightBlue, filepath.Base(file2), sheet, colorReset),
+					title:   fmt.Sprintf("%s%s:%s%s", colorLightBlue, filepath.Base(file2), sheet, colorReset),
 					content: content,
 				})
 			}
