@@ -292,7 +292,7 @@ var diffCmd = &cobra.Command{
 func init() {
 	// コマンドを登録する
 	rootCmd.AddCommand(diffCmd)
-	catCmd.Flags().BoolVarP(&diffFormula, "formula", "f", false, "If the cell value is a formula, compare the formula instead of the value.")
+	diffCmd.Flags().BoolVarP(&diffFormula, "formula", "f", false, "If the cell value is a formula, compare the formula instead of the value.")
 }
 
 // 空でないセルの数をカウントする
