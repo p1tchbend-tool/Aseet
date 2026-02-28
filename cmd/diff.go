@@ -13,7 +13,6 @@ import (
 const (
 	colorLightOrange = "\033[38;5;215m"
 	colorLightBlue   = "\033[38;5;117m"
-	colorCyan        = "\033[36m"
 	colorReset       = "\033[0m"
 )
 
@@ -70,8 +69,6 @@ var diffCmd = &cobra.Command{
 					lines[i] = colorLightOrange + line + colorReset
 				} else if strings.HasPrefix(line, "+") {
 					lines[i] = colorLightBlue + line + colorReset
-				} else if strings.HasPrefix(line, "@@") {
-					lines[i] = colorCyan + line + colorReset
 				}
 			}
 			fmt.Print(strings.Join(lines, "\n"))
@@ -133,14 +130,14 @@ var diffCmd = &cobra.Command{
 							diffCells = append(diffCells, cellDiff)
 						}
 					}
-					
+
 					var rowNumStr string
 					if r1 != -1 {
 						rowNumStr = fmt.Sprintf("%d", r1+1)
 					} else {
 						rowNumStr = fmt.Sprintf("%d", r2+1)
 					}
-					
+
 					sheetOutput = append(sheetOutput, fmt.Sprintf("Row %s: %s", rowNumStr, strings.Join(diffCells, ",")))
 				}
 
