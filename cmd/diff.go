@@ -239,14 +239,14 @@ var diffCmd = &cobra.Command{
 		// サマリーを作成して先頭に追加する
 		var summaryBuilder strings.Builder
 		if sheetListDiff != "" {
-			summaryBuilder.WriteString("[Sheet Name Differences]\n")
+			summaryBuilder.WriteString("\n[Sheet Name Differences]\n\n")
 			summaryBuilder.WriteString(sheetListDiff)
 		}
 		if len(modifiedSheets) > 0 {
 			if summaryBuilder.Len() > 0 {
 				summaryBuilder.WriteString("\n")
 			}
-			summaryBuilder.WriteString("[Modified Sheets (Cell Differences)]\n")
+			summaryBuilder.WriteString("[Modified Sheets (Cell Differences)]\n\n")
 			for _, s := range modifiedSheets {
 				summaryBuilder.WriteString(fmt.Sprintf("%s\n", s))
 			}
