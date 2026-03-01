@@ -100,6 +100,7 @@ var diffCmd = &cobra.Command{
 			os.Exit(1)
 		}
 
+		var sheetListDiff string
 		if text != "" {
 			// Unified Diffの出力を色付けする
 			lines := strings.Split(text, "\n")
@@ -112,10 +113,7 @@ var diffCmd = &cobra.Command{
 					lines[i] = colorLightBlue + line + colorReset
 				}
 			}
-			results = append(results, sheetResult{
-				title:   "Sheet List",
-				content: strings.Join(lines, "\n"),
-			})
+			sheetListDiff = strings.Join(lines, "\n")
 		}
 
 		// 全てのユニークなシート名を取得し、存在チェック用のマップを作成する
@@ -133,6 +131,8 @@ var diffCmd = &cobra.Command{
 				allSheets = append(allSheets, s)
 			}
 		}
+
+		var modifiedSheets []string
 
 		// 各シートについてセルの内容を比較または出力する
 		for _, sheet := range allSheets {
@@ -194,6 +194,7 @@ var diffCmd = &cobra.Command{
 				}
 
 				if hasSheetDiff {
+					modifiedSheets = append(modifiedSheets, sheet)
 					results = append(results, sheetResult{
 						title:   sheet,
 						content: strings.Join(sheetOutput, "\n"),
@@ -233,6 +234,31 @@ var diffCmd = &cobra.Command{
 					content: content,
 				})
 			}
+		}
+
+		// サマリーを作成して先頭に追加する
+		var summaryBuilder strings.Builder
+		if sheetListDiff != "" {
+			summaryBuilder.WriteString("[Sheet Name Differences]\n")
+			summaryBuilder.WriteString(sheetListDiff)
+			summaryBuilder.WriteString("\n")
+		}
+		if len(modifiedSheets) > 0 {
+			if summaryBuilder.Len() > 0 {
+				summaryBuilder.WriteString("\n")
+			}
+			summaryBuilder.WriteString("[Modified Sheets (Cell Differences)]\n")
+			for _, s := range modifiedSheets {
+				summaryBuilder.WriteString(fmt.Sprintf("  * %s\n", s))
+			}
+		}
+
+		summaryText := strings.TrimSpace(summaryBuilder.String())
+		if summaryText != "" {
+			results = append([]sheetResult{{
+				title:   "Summary",
+				content: summaryText,
+			}}, results...)
 		}
 
 		// 差分が全くない場合の処理
