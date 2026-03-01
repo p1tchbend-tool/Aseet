@@ -242,7 +242,7 @@ var diffCmd = &cobra.Command{
 		}
 
 		// TUIアプリケーションを実行する
-		if err := displayTUI(results); err != nil {
+		if err := displayTui(results); err != nil {
 			fmt.Printf("Error running TUI: %v\n", err)
 			os.Exit(1)
 		}

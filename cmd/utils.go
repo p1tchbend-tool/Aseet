@@ -19,7 +19,7 @@ type sheetResult struct {
 }
 
 // TUIアプリケーションを構築して表示する共通処理
-func displayTUI(results []sheetResult) error {
+func displayTui(results []sheetResult) error {
 	app := tview.NewApplication()
 	pages := tview.NewPages()
 
@@ -69,7 +69,7 @@ func displayTUI(results []sheetResult) error {
 			currentTab = (currentTab + 1) % len(results)
 			tabBar.Highlight(fmt.Sprintf("page_%d", currentTab))
 			return nil
-		// Shift+Tabキーで前のタブへ
+			// Shift+Tabキーで前のタブへ
 		} else if event.Key() == tcell.KeyBacktab {
 			currentTab = (currentTab - 1 + len(results)) % len(results)
 			tabBar.Highlight(fmt.Sprintf("page_%d", currentTab))
