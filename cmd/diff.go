@@ -255,7 +255,7 @@ var diffCmd = &cobra.Command{
 		summaryText := strings.TrimSpace(summaryBuilder.String())
 		if summaryText != "" {
 			results = append([]sheetResult{{
-				title:   "Summary",
+				title:   "[yellow]Summary[-]",
 				content: summaryText,
 			}}, results...)
 		}
