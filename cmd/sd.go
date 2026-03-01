@@ -14,6 +14,8 @@ import (
 var sdIgnoreCase bool
 var sdSheetName string
 var sdRecursive bool
+var sdFormula bool
+var sdHyperlink bool
 
 var sdCmd = &cobra.Command{
 	Use:   "sd [search] [replace] [file or directory]",
@@ -142,24 +144,45 @@ var sdCmd = &cobra.Command{
 							continue
 						}
 
-						// 数式を取得する
-						formula, err := f.GetCellFormula(sheetName, cellName)
-						if err == nil && formula != "" {
-							// 数式が存在する場合、数式内を置換する
-							if re.MatchString(formula) {
-								isRowModified = true
-								newFormula := re.ReplaceAllString(formula, replace)
-								if err := f.SetCellFormula(sheetName, cellName, newFormula); err != nil {
-									fmt.Printf("Error setting cell formula for %s on sheet %s\n", cellName, sheetName)
-									continue
+						if sdHyperlink {
+							// ハイパーリンクのみを置換対象にする
+							hasLink, target, err := f.GetCellHyperLink(sheetName, cellName)
+							if err == nil && hasLink && target != "" {
+								if re.MatchString(target) {
+									isRowModified = true
+									newTarget := re.ReplaceAllString(target, replace)
+									
+									// リンクタイプを判定（簡易的に ! が含まれていれば Location、それ以外は External とする）
+									linkType := "External"
+									if strings.Contains(newTarget, "!") {
+										linkType = "Location"
+									}
+									
+									if err := f.SetCellHyperLink(sheetName, cellName, newTarget, linkType); err != nil {
+										fmt.Printf("Error setting cell hyperlink for %s on sheet %s\n", cellName, sheetName)
+										continue
+									}
 								}
-								// 数式を更新したため再計算フラグを立てる
-								if f.WorkBook != nil && f.WorkBook.CalcPr != nil {
-									f.WorkBook.CalcPr.FullCalcOnLoad = true
+							}
+						} else if sdFormula {
+							// 数式のみを置換対象にする
+							formula, err := f.GetCellFormula(sheetName, cellName)
+							if err == nil && formula != "" {
+								if re.MatchString(formula) {
+									isRowModified = true
+									newFormula := re.ReplaceAllString(formula, replace)
+									if err := f.SetCellFormula(sheetName, cellName, newFormula); err != nil {
+										fmt.Printf("Error setting cell formula for %s on sheet %s\n", cellName, sheetName)
+										continue
+									}
+									// 数式を更新したため再計算フラグを立てる
+									if f.WorkBook != nil && f.WorkBook.CalcPr != nil {
+										f.WorkBook.CalcPr.FullCalcOnLoad = true
+									}
 								}
 							}
 						} else {
-							// 数式がない場合、セルの値を置換する
+							// セルの値のみを置換対象にする
 							if re.MatchString(cellValue) {
 								isRowModified = true
 								newCellValue := re.ReplaceAllString(cellValue, replace)
@@ -195,4 +218,6 @@ func init() {
 	sdCmd.Flags().BoolVarP(&sdIgnoreCase, "ignore-case", "i", false, "Ignore case distinctions during the search.")
 	sdCmd.Flags().StringVarP(&sdSheetName, "name", "n", "", "Replace cell values in the specified sheet.")
 	sdCmd.Flags().BoolVarP(&sdRecursive, "recursive", "r", false, "Process subdirectories recursively.")
+	sdCmd.Flags().BoolVarP(&sdFormula, "formula", "f", false, "Replace only cell formulas.")
+	sdCmd.Flags().BoolVarP(&sdHyperlink, "hyperlink", "l", false, "Replace only hyperlinks.")
 }
