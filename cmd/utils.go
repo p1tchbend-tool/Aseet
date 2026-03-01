@@ -55,7 +55,7 @@ func displayTui(results []sheetResult) error {
 	}
 
 	// 操作方法を表示するヘルプバーを作成
-	helpText := " [yellow]Tab[-]: Next Tab | [yellow]Shift+Tab[-]: Prev Tab | [yellow]←/→/↑/↓[-]: Scroll | [yellow]Esc/q[-]: Quit "
+	helpText := " [yellow]Tab[-]: Next tab | [yellow]Shift + Tab[-]: Prev tab | [yellow]Arrow keys[-]: Scroll | [yellow]Esc / q[-]: Quit "
 	helpBar := tview.NewTextView().
 		SetDynamicColors(true).
 		SetText(helpText).
