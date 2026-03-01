@@ -263,24 +263,26 @@ var diffCmd = &cobra.Command{
 		// サマリーを作成して先頭に追加する
 		var summaryBuilder strings.Builder
 		if sheetListDiff != "" {
-			summaryBuilder.WriteString("[Sheet Name Differences]\n")
+			summaryBuilder.WriteString("\n")
+			summaryBuilder.WriteString("[Sheet Name Differences]")
+			summaryBuilder.WriteString("\n")
 			summaryBuilder.WriteString(sheetListDiff)
+			summaryBuilder.WriteString("\n")
 		}
 		if len(modifiedSheets) > 0 {
-			if summaryBuilder.Len() > 0 {
-				summaryBuilder.WriteString("\n")
-			}
-			summaryBuilder.WriteString("[Modified Sheets (Cell Differences)]\n")
-			
+			summaryBuilder.WriteString("\n")
+			summaryBuilder.WriteString("[Modified Sheets (Cell Differences)]")
+			summaryBuilder.WriteString("\n\n")
+
 			// 変更されたシート名を昇順ソートする
 			sort.Strings(modifiedSheets)
-			
+
 			for _, s := range modifiedSheets {
 				summaryBuilder.WriteString(fmt.Sprintf("%s\n", s))
 			}
 		}
 
-		summaryText := strings.TrimSpace(summaryBuilder.String())
+		summaryText := summaryBuilder.String()
 		if summaryText != "" {
 			results = append([]sheetResult{{
 				title:   "[yellow]Summary[-]",
