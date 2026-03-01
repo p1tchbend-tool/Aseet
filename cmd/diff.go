@@ -82,6 +82,10 @@ var diffCmd = &cobra.Command{
 		sheets1 := f1.GetSheetList()
 		sheets2 := f2.GetSheetList()
 
+		// 差分を取る前にシート名を昇順にソートする
+		sort.Strings(sheets1)
+		sort.Strings(sheets2)
+
 		text1 := strings.Join(sheets1, "\n") + "\n"
 		text2 := strings.Join(sheets2, "\n") + "\n"
 
@@ -103,31 +107,14 @@ var diffCmd = &cobra.Command{
 
 		var sheetListDiff string
 		if text != "" {
-			var rawDiffLines []string
+			var diffLines []string
 			lines := strings.Split(text, "\n")
 			for _, line := range lines {
 				// 空行やヘッダー行を除外する
 				if line == "" || strings.HasPrefix(line, "---") || strings.HasPrefix(line, "+++") || strings.HasPrefix(line, "@@") {
 					continue
 				}
-				rawDiffLines = append(rawDiffLines, line)
-			}
-
-			// シート名で昇順ソートする（先頭の差分記号 '+', '-', ' ' を除外して比較）
-			sort.Slice(rawDiffLines, func(i, j int) bool {
-				nameI := rawDiffLines[i]
-				if len(nameI) > 0 {
-					nameI = nameI[1:]
-				}
-				nameJ := rawDiffLines[j]
-				if len(nameJ) > 0 {
-					nameJ = nameJ[1:]
-				}
-				return nameI < nameJ
-			})
-
-			var diffLines []string
-			for _, line := range rawDiffLines {
+				
 				// Unified Diffの出力を色付けする
 				if strings.HasPrefix(line, "-") {
 					diffLines = append(diffLines, colorLightOrange+line+colorReset)
