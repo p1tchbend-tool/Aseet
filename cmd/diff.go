@@ -114,7 +114,7 @@ var diffCmd = &cobra.Command{
 				if line == "" || strings.HasPrefix(line, "---") || strings.HasPrefix(line, "+++") || strings.HasPrefix(line, "@@") {
 					continue
 				}
-				
+
 				// Unified Diffの出力を色付けする
 				if strings.HasPrefix(line, "-") {
 					diffLines = append(diffLines, colorLightOrange+line+colorReset)
@@ -252,7 +252,7 @@ var diffCmd = &cobra.Command{
 		if sheetListDiff != "" {
 			summaryBuilder.WriteString("\n")
 			summaryBuilder.WriteString("[Sheet Name Differences]")
-			summaryBuilder.WriteString("\n")
+			summaryBuilder.WriteString("\n\n")
 			summaryBuilder.WriteString(sheetListDiff)
 			summaryBuilder.WriteString("\n")
 		}
