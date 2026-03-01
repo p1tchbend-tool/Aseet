@@ -54,13 +54,23 @@ func displayTUI(results []sheetResult) error {
 		tabBar.Highlight(fmt.Sprintf("page_%d", 0))
 	}
 
+	// 操作方法を表示するヘルプバーを作成
+	helpText := " [yellow]Tab[-]: Next Tab | [yellow]Shift+Tab[-]: Prev Tab | [yellow]←/→/↑/↓[-]: Scroll | [yellow]Esc/q[-]: Quit "
+	helpBar := tview.NewTextView().
+		SetDynamicColors(true).
+		SetText(helpText).
+		SetTextAlign(tview.AlignCenter)
+	helpBar.SetBackgroundColor(tcell.ColorDefault)
+
 	currentTab := 0
 	app.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
-		if event.Key() == tcell.KeyRight || event.Key() == tcell.KeyTab {
+		// Tabキーで次のタブへ
+		if event.Key() == tcell.KeyTab {
 			currentTab = (currentTab + 1) % len(results)
 			tabBar.Highlight(fmt.Sprintf("page_%d", currentTab))
 			return nil
-		} else if event.Key() == tcell.KeyLeft {
+		// Shift+Tabキーで前のタブへ
+		} else if event.Key() == tcell.KeyBacktab {
 			currentTab = (currentTab - 1 + len(results)) % len(results)
 			tabBar.Highlight(fmt.Sprintf("page_%d", currentTab))
 			return nil
@@ -74,7 +84,8 @@ func displayTUI(results []sheetResult) error {
 	layout := tview.NewFlex().
 		SetDirection(tview.FlexRow).
 		AddItem(tabBar, 1, 1, false).
-		AddItem(pages, 0, 1, true)
+		AddItem(pages, 0, 1, true).
+		AddItem(helpBar, 1, 1, false) // ヘルプバーを画面下部に追加
 
 	return app.SetRoot(layout, true).EnableMouse(true).Run()
 }
