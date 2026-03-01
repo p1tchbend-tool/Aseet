@@ -27,6 +27,11 @@ var sdCmd = &cobra.Command{
 		replace := args[1]
 		path := args[2]
 
+		if sdFormula && sdHyperlink {
+			fmt.Println("Formula and hyperlink are mutually exclusive.")
+			os.Exit(1)
+		}
+
 		var re *regexp.Regexp
 		var err error
 		// 大文字小文字を区別しないオプションが指定された場合
@@ -151,13 +156,13 @@ var sdCmd = &cobra.Command{
 								if re.MatchString(target) {
 									isRowModified = true
 									newTarget := re.ReplaceAllString(target, replace)
-									
+
 									// リンクタイプを判定（簡易的に ! が含まれていれば Location、それ以外は External とする）
 									linkType := "External"
 									if strings.Contains(newTarget, "!") {
 										linkType = "Location"
 									}
-									
+
 									if err := f.SetCellHyperLink(sheetName, cellName, newTarget, linkType); err != nil {
 										fmt.Printf("Error setting cell hyperlink for %s on sheet %s\n", cellName, sheetName)
 										continue
