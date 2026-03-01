@@ -241,7 +241,6 @@ var diffCmd = &cobra.Command{
 		if sheetListDiff != "" {
 			summaryBuilder.WriteString("[Sheet Name Differences]\n")
 			summaryBuilder.WriteString(sheetListDiff)
-			summaryBuilder.WriteString("\n")
 		}
 		if len(modifiedSheets) > 0 {
 			if summaryBuilder.Len() > 0 {
@@ -249,7 +248,7 @@ var diffCmd = &cobra.Command{
 			}
 			summaryBuilder.WriteString("[Modified Sheets (Cell Differences)]\n")
 			for _, s := range modifiedSheets {
-				summaryBuilder.WriteString(fmt.Sprintf("  * %s\n", s))
+				summaryBuilder.WriteString(fmt.Sprintf("%s\n", s))
 			}
 		}
 
