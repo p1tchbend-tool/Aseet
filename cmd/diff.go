@@ -102,18 +102,24 @@ var diffCmd = &cobra.Command{
 
 		var sheetListDiff string
 		if text != "" {
-			// Unified Diffの出力を色付けする
+			var diffLines []string
 			lines := strings.Split(text, "\n")
-			for i, line := range lines {
-				if strings.HasPrefix(line, "---") || strings.HasPrefix(line, "+++") {
-					// ファイルヘッダーはそのままにする
-				} else if strings.HasPrefix(line, "-") {
-					lines[i] = colorLightOrange + line + colorReset
+			for _, line := range lines {
+				// 空行やヘッダー行を除外する
+				if line == "" || strings.HasPrefix(line, "---") || strings.HasPrefix(line, "+++") || strings.HasPrefix(line, "@@") {
+					continue
+				}
+				
+				// Unified Diffの出力を色付けする
+				if strings.HasPrefix(line, "-") {
+					diffLines = append(diffLines, colorLightOrange+line+colorReset)
 				} else if strings.HasPrefix(line, "+") {
-					lines[i] = colorLightBlue + line + colorReset
+					diffLines = append(diffLines, colorLightBlue+line+colorReset)
+				} else {
+					diffLines = append(diffLines, line)
 				}
 			}
-			sheetListDiff = strings.Join(lines, "\n")
+			sheetListDiff = strings.Join(diffLines, "\n")
 		}
 
 		// 全てのユニークなシート名を取得し、存在チェック用のマップを作成する
