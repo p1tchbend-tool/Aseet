@@ -6,9 +6,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/gdamore/tcell/v2"
 	"github.com/pmezard/go-difflib/difflib"
-	"github.com/rivo/tview"
 	"github.com/spf13/cobra"
 	"github.com/xuri/excelize/v2"
 )
@@ -19,12 +17,6 @@ const (
 	colorLightBlue   = "[#87d7ff]"
 	colorReset       = "[-]"
 )
-
-// シートごとの差分結果を保持する構造体
-type diffResult struct {
-	title   string
-	content string
-}
 
 var diffFormula bool
 var diffOpen bool
@@ -83,7 +75,7 @@ var diffCmd = &cobra.Command{
 		}
 		defer f2.Close()
 
-		var results []diffResult
+		var results []sheetResult
 
 		// 両方のファイルからシート名のリストを取得する
 		sheets1 := f1.GetSheetList()
@@ -120,7 +112,7 @@ var diffCmd = &cobra.Command{
 					lines[i] = colorLightBlue + line + colorReset
 				}
 			}
-			results = append(results, diffResult{
+			results = append(results, sheetResult{
 				title:   "Sheet List",
 				content: strings.Join(lines, "\n"),
 			})
@@ -202,7 +194,7 @@ var diffCmd = &cobra.Command{
 				}
 
 				if hasSheetDiff {
-					results = append(results, diffResult{
+					results = append(results, sheetResult{
 						title:   sheet,
 						content: strings.Join(sheetOutput, "\n"),
 					})
@@ -213,7 +205,7 @@ var diffCmd = &cobra.Command{
 						fmt.Printf("Error reading sheet %s\n", sheet)
 						continue
 					}
-					results = append(results, diffResult{
+					results = append(results, sheetResult{
 						title:   sheet,
 						content: content,
 					})
@@ -225,7 +217,7 @@ var diffCmd = &cobra.Command{
 					fmt.Printf("Error reading sheet %s\n", sheet)
 					continue
 				}
-				results = append(results, diffResult{
+				results = append(results, sheetResult{
 					title:   fmt.Sprintf("%s%s : %s%s", colorLightOrange, filepath.Base(file1), sheet, colorReset),
 					content: content,
 				})
@@ -236,7 +228,7 @@ var diffCmd = &cobra.Command{
 					fmt.Printf("Error reading sheet %s\n", sheet)
 					continue
 				}
-				results = append(results, diffResult{
+				results = append(results, sheetResult{
 					title:   fmt.Sprintf("%s%s : %s%s", colorLightBlue, filepath.Base(file2), sheet, colorReset),
 					content: content,
 				})
@@ -249,70 +241,8 @@ var diffCmd = &cobra.Command{
 			return
 		}
 
-		// TUIアプリケーションとページコンテナの構築
-		app := tview.NewApplication()
-		pages := tview.NewPages()
-
-		// タブバーの作成と設定
-		tabBar := tview.NewTextView().
-			SetDynamicColors(true).
-			SetRegions(true).
-			SetWrap(false).
-			SetHighlightedFunc(func(added, removed, remaining []string) {
-				if len(added) > 0 {
-					pages.SwitchToPage(added[0])
-				}
-			})
-		tabBar.SetBackgroundColor(tcell.ColorDefault)
-
-		var tabTitles []string
-		// 各シートの差分結果をページとして追加する
-		for i, res := range results {
-			pageID := fmt.Sprintf("page_%d", i)
-			tabTitles = append(tabTitles, fmt.Sprintf(`["%s"] %s [""]`, pageID, res.title))
-
-			textView := tview.NewTextView().
-				SetDynamicColors(true).
-				SetText(res.content).
-				SetScrollable(true).
-				SetWrap(false)
-			textView.SetBackgroundColor(tcell.ColorDefault)
-
-			pages.AddPage(pageID, textView, true, i == 0)
-		}
-
-		// タブバーにタイトルを設定し、最初のタブをハイライトする
-		tabBar.SetText(strings.Join(tabTitles, " | "))
-		if len(results) > 0 {
-			tabBar.Highlight(fmt.Sprintf("page_%d", 0))
-		}
-
-		// キー入力のハンドリング（タブ切り替えと終了）
-		currentTab := 0
-		app.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
-			if event.Key() == tcell.KeyRight || event.Key() == tcell.KeyTab {
-				currentTab = (currentTab + 1) % len(results)
-				tabBar.Highlight(fmt.Sprintf("page_%d", currentTab))
-				return nil
-			} else if event.Key() == tcell.KeyLeft {
-				currentTab = (currentTab - 1 + len(results)) % len(results)
-				tabBar.Highlight(fmt.Sprintf("page_%d", currentTab))
-				return nil
-			} else if event.Key() == tcell.KeyEscape || event.Rune() == 'q' {
-				app.Stop()
-				return nil
-			}
-			return event
-		})
-
-		// レイアウトの組み立て（上にタブバー、下にページ内容）
-		layout := tview.NewFlex().
-			SetDirection(tview.FlexRow).
-			AddItem(tabBar, 1, 1, false).
-			AddItem(pages, 0, 1, true)
-
 		// TUIアプリケーションを実行する
-		if err := app.SetRoot(layout, true).EnableMouse(true).Run(); err != nil {
+		if err := displayTUI(results); err != nil {
 			fmt.Printf("Error running TUI: %v\n", err)
 			os.Exit(1)
 		}

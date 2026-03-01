@@ -7,8 +7,77 @@ import (
 	"runtime"
 	"strings"
 
+	"github.com/gdamore/tcell/v2"
+	"github.com/rivo/tview"
 	"github.com/xuri/excelize/v2"
 )
+
+// TUIで表示する各タブ（シート）のデータを保持する構造体
+type sheetResult struct {
+	title   string
+	content string
+}
+
+// TUIアプリケーションを構築して表示する共通処理
+func displayTUI(results []sheetResult) error {
+	app := tview.NewApplication()
+	pages := tview.NewPages()
+
+	tabBar := tview.NewTextView().
+		SetDynamicColors(true).
+		SetRegions(true).
+		SetWrap(false).
+		SetHighlightedFunc(func(added, removed, remaining []string) {
+			if len(added) > 0 {
+				pages.SwitchToPage(added[0])
+			}
+		})
+	tabBar.SetBackgroundColor(tcell.ColorDefault)
+
+	var tabTitles []string
+	for i, res := range results {
+		pageID := fmt.Sprintf("page_%d", i)
+		tabTitles = append(tabTitles, fmt.Sprintf(`["%s"] %s [""]`, pageID, res.title))
+
+		textView := tview.NewTextView().
+			SetDynamicColors(true).
+			SetText(res.content).
+			SetScrollable(true).
+			SetWrap(false)
+		textView.SetBackgroundColor(tcell.ColorDefault)
+
+		pages.AddPage(pageID, textView, true, i == 0)
+	}
+
+	tabBar.SetText(strings.Join(tabTitles, " | "))
+	if len(results) > 0 {
+		tabBar.Highlight(fmt.Sprintf("page_%d", 0))
+	}
+
+	currentTab := 0
+	app.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
+		if event.Key() == tcell.KeyRight || event.Key() == tcell.KeyTab {
+			currentTab = (currentTab + 1) % len(results)
+			tabBar.Highlight(fmt.Sprintf("page_%d", currentTab))
+			return nil
+		} else if event.Key() == tcell.KeyLeft {
+			currentTab = (currentTab - 1 + len(results)) % len(results)
+			tabBar.Highlight(fmt.Sprintf("page_%d", currentTab))
+			return nil
+		} else if event.Key() == tcell.KeyEscape || event.Rune() == 'q' {
+			app.Stop()
+			return nil
+		}
+		return event
+	})
+
+	layout := tview.NewFlex().
+		SetDirection(tview.FlexRow).
+		AddItem(tabBar, 1, 1, false).
+		AddItem(pages, 0, 1, true)
+
+	return app.SetRoot(layout, true).EnableMouse(true).Run()
+}
 
 // 対応するExcelファイルの拡張子かどうかを判定する
 func isExcelFile(ext string) bool {
