@@ -1,6 +1,11 @@
 package cmd
 
-import "testing"
+import (
+	"reflect"
+	"testing"
+
+	"github.com/xuri/excelize/v2"
+)
 
 func TestIsExcelFile(t *testing.T) {
 	tests := []struct {
@@ -46,4 +51,52 @@ func TestEscapeCSVField(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestGetSheetData_TestData(t *testing.T) {
+	f, err := excelize.OpenFile("testdata/testbook1.xlsx")
+	if err != nil {
+		t.Fatalf("failed to open test file: %v", err)
+	}
+	defer f.Close()
+
+	sheetName := "Sheet1"
+
+	t.Run("Without Formula", func(t *testing.T) {
+		got, err := getSheetData(f, sheetName, false)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+
+		expected := [][]string{
+			{"Hello", "World"},
+		}
+
+		if !reflect.DeepEqual(got, expected) {
+			t.Errorf("getSheetData() = %v, want %v", got, expected)
+		}
+	})
+}
+
+func TestGetSheetContents_TestData(t *testing.T) {
+	f, err := excelize.OpenFile("testdata/testbook1.xlsx")
+	if err != nil {
+		t.Fatalf("failed to open test file: %v", err)
+	}
+	defer f.Close()
+
+	sheetName := "Sheet1"
+
+	t.Run("Without Formula", func(t *testing.T) {
+		got, err := getSheetContents(f, sheetName, false)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+
+		expected := "Hello,World\n"
+
+		if got != expected {
+			t.Errorf("getSheetContents() = %q, want %q", got, expected)
+		}
+	})
 }
