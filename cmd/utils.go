@@ -84,6 +84,9 @@ func displayTui(results []sheetResult) error {
 			currentTab = (currentTab - 1 + len(results)) % len(results)
 			tabBar.Highlight(fmt.Sprintf("page_%d", currentTab))
 			return nil
+		} else if event.Key() == tcell.KeyEscape || event.Rune() == 'q' {
+			app.Stop()
+			return nil
 		}
 		return event
 	})
