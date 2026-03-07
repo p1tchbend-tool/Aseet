@@ -105,10 +105,18 @@ func isExcelFile(ext string) bool {
 	return ext == ".xlsx" || ext == ".xlsm" || ext == ".xlam" || ext == ".xltm" || ext == ".xltx"
 }
 
-// セルの値にカンマが含まれる場合はダブルクォーテーションで囲む
+// セルの値にカンマ、改行、ダブルクォーテーションが含まれる場合はエスケープ処理を行う
 func escapeCSVField(value string) string {
-	if strings.Contains(value, ",") {
-		return fmt.Sprintf("\"%s\"", strings.ReplaceAll(value, "\"", "\"\""))
+	needsQuotes := strings.Contains(value, "\"") || strings.Contains(value, "\n") || strings.Contains(value, ",")
+
+	// 1. ダブルクォーテーションを2つにする
+	value = strings.ReplaceAll(value, "\"", "\"\"")
+	// 2. ラインフィールドが含まれる場合、\nに変換する
+	value = strings.ReplaceAll(value, "\n", "\\n")
+
+	// 3. ダブルクォーテーション・ラインフィールド・カンマが含まれていた場合は、フィールド全体をダブルクォーテーションで囲む
+	if needsQuotes {
+		return fmt.Sprintf("\"%s\"", value)
 	}
 	return value
 }
