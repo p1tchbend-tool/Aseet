@@ -21,6 +21,7 @@ const (
 
 var diffFormula bool
 var diffOpen bool
+var diffSheetName string
 
 var diffCmd = &cobra.Command{
 	Use:   "diff [file1] [file2]",
@@ -86,45 +87,49 @@ var diffCmd = &cobra.Command{
 		sort.Strings(sheets1)
 		sort.Strings(sheets2)
 
-		text1 := strings.Join(sheets1, "\n") + "\n"
-		text2 := strings.Join(sheets2, "\n") + "\n"
-
-		// シート名のリストを比較するためのUnified Diffを設定する
-		diff := difflib.UnifiedDiff{
-			A:        difflib.SplitLines(text1),
-			B:        difflib.SplitLines(text2),
-			FromFile: file1,
-			ToFile:   file2,
-			Context:  3,
-		}
-
-		// 差分文字列を生成する
-		text, err := difflib.GetUnifiedDiffString(diff)
-		if err != nil {
-			fmt.Printf("Error generating diff: %v\n", err)
-			os.Exit(1)
-		}
-
 		var sheetListDiff string
-		if text != "" {
-			var diffLines []string
-			lines := strings.Split(text, "\n")
-			for _, line := range lines {
-				// 空行やヘッダー行を除外する
-				if line == "" || strings.HasPrefix(line, "---") || strings.HasPrefix(line, "+++") || strings.HasPrefix(line, "@@") {
-					continue
-				}
 
-				// Unified Diffの出力を色付けする
-				if strings.HasPrefix(line, "-") {
-					diffLines = append(diffLines, colorLightOrange+line+colorReset)
-				} else if strings.HasPrefix(line, "+") {
-					diffLines = append(diffLines, colorLightBlue+line+colorReset)
-				} else {
-					diffLines = append(diffLines, line)
-				}
+		// シート名が指定されていない場合のみ、シート名一覧の差分を生成する
+		if diffSheetName == "" {
+			text1 := strings.Join(sheets1, "\n") + "\n"
+			text2 := strings.Join(sheets2, "\n") + "\n"
+
+			// シート名のリストを比較するためのUnified Diffを設定する
+			diff := difflib.UnifiedDiff{
+				A:        difflib.SplitLines(text1),
+				B:        difflib.SplitLines(text2),
+				FromFile: file1,
+				ToFile:   file2,
+				Context:  3,
 			}
-			sheetListDiff = strings.Join(diffLines, "\n")
+
+			// 差分文字列を生成する
+			text, err := difflib.GetUnifiedDiffString(diff)
+			if err != nil {
+				fmt.Printf("Error generating diff: %v\n", err)
+				os.Exit(1)
+			}
+
+			if text != "" {
+				var diffLines []string
+				lines := strings.Split(text, "\n")
+				for _, line := range lines {
+					// 空行やヘッダー行を除外する
+					if line == "" || strings.HasPrefix(line, "---") || strings.HasPrefix(line, "+++") || strings.HasPrefix(line, "@@") {
+						continue
+					}
+
+					// Unified Diffの出力を色付けする
+					if strings.HasPrefix(line, "-") {
+						diffLines = append(diffLines, colorLightOrange+line+colorReset)
+					} else if strings.HasPrefix(line, "+") {
+						diffLines = append(diffLines, colorLightBlue+line+colorReset)
+					} else {
+						diffLines = append(diffLines, line)
+					}
+				}
+				sheetListDiff = strings.Join(diffLines, "\n")
+			}
 		}
 
 		// 全てのユニークなシート名を取得し、存在チェック用のマップを作成する
@@ -134,12 +139,26 @@ var diffCmd = &cobra.Command{
 
 		for _, s := range sheets1 {
 			sheetMap1[s] = true
-			allSheets = append(allSheets, s)
 		}
 		for _, s := range sheets2 {
 			sheetMap2[s] = true
-			if !sheetMap1[s] {
+		}
+
+		// 比較対象のシートを決定する
+		if diffSheetName != "" {
+			if !sheetMap1[diffSheetName] && !sheetMap2[diffSheetName] {
+				fmt.Printf("Sheet %s does not exist in either file.\n", diffSheetName)
+				os.Exit(1)
+			}
+			allSheets = []string{diffSheetName}
+		} else {
+			for _, s := range sheets1 {
 				allSheets = append(allSheets, s)
+			}
+			for _, s := range sheets2 {
+				if !sheetMap1[s] {
+					allSheets = append(allSheets, s)
+				}
 			}
 		}
 
@@ -295,6 +314,7 @@ func init() {
 	// コマンドを登録する
 	rootCmd.AddCommand(diffCmd)
 	diffCmd.Flags().BoolVarP(&diffFormula, "formula", "f", false, "If the cell value is a formula, compare the formula instead of the value.")
+	diffCmd.Flags().StringVarP(&diffSheetName, "name", "n", "", "Compare only the specified sheet.")
 	diffCmd.Flags().BoolVarP(&diffOpen, "open", "o", false, "Copy the two files to the cache directory with [LOCAL] and [REMOTE] prefixes and open them.")
 }
 
