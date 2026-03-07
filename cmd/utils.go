@@ -77,7 +77,7 @@ func displayTui(results []sheetResult) error {
 	}
 
 	// 操作方法を表示するヘルプバーを作成
-	helpText := " [yellow]Tab[-]: Next tab | [yellow]Shift + Tab[-]: Previous tab | [yellow]h / j / k / l[-]: Scroll | [yellow]g[-]: Scroll to top | [yellow]Shift + g[-]: Scroll to bottom | [yellow]q[-]: Quit "
+	helpText := " [yellow]Tab[-]: Next tab | [yellow]Shift + Tab[-]: Previous tab | [yellow]b / f[-]: Scroll tab | [yellow]h / j / k / l[-]: Scroll | [yellow]g / G[-]: Scroll to edge | [yellow]q[-]: Quit "
 	helpBar := tview.NewTextView().
 		SetDynamicColors(true).
 		SetText(helpText).
@@ -104,13 +104,11 @@ func displayTui(results []sheetResult) error {
 				newCol = 0
 			}
 			tabBar.ScrollTo(row, newCol)
-			app.SetFocus(pages)
 			return nil
 			// タブバーを右スクロール
 		} else if event.Rune() == 'f' {
 			row, col := tabBar.GetScrollOffset()
 			tabBar.ScrollTo(row, col+100)
-			app.SetFocus(pages)
 			return nil
 			// Esq or qで終了
 		} else if event.Key() == tcell.KeyEscape || event.Rune() == 'q' {
