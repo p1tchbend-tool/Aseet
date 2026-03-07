@@ -104,29 +104,32 @@ func displayTui(results []sheetResult) error {
 	})
 
 	// 左スクロールボタン
-	leftBtn := tview.NewButton("<").SetSelectedFunc(func() {
-		app.QueueEvent(tcell.NewEventKey(tcell.KeyLeft, 0, tcell.ModNone))
+	leftBtn := tview.NewButton("◁").SetSelectedFunc(func() {
+		for range 100 {
+			app.QueueEvent(tcell.NewEventKey(tcell.KeyLeft, 0, tcell.ModNone))
+		}
 		app.SetFocus(lastFocus) // 最後にフォーカスがあったコンポーネントに戻す
 	})
 
 	// 右スクロールボタン
-	rightBtn := tview.NewButton(">").SetSelectedFunc(func() {
-		app.QueueEvent(tcell.NewEventKey(tcell.KeyRight, 0, tcell.ModNone))
+	rightBtn := tview.NewButton("▷").SetSelectedFunc(func() {
+		for range 100 {
+			app.QueueEvent(tcell.NewEventKey(tcell.KeyRight, 0, tcell.ModNone))
+		}
 		app.SetFocus(lastFocus) // 最後にフォーカスがあったコンポーネントに戻す
 	})
 
-	// テキストビューと左右のボタンを横に並べるレイアウト
 	mainContent := tview.NewFlex().
-		SetDirection(tview.FlexColumn).
-		AddItem(leftBtn, 3, 0, false).
-		AddItem(pages, 0, 1, true).
-		AddItem(rightBtn, 3, 0, false)
-
-	layout := tview.NewFlex().
 		SetDirection(tview.FlexRow).
 		AddItem(tabBar, 1, 1, false).
+		AddItem(pages, 0, 1, true).
+		AddItem(helpBar, 1, 1, false)
+
+	layout := tview.NewFlex().
+		SetDirection(tview.FlexColumn).
+		AddItem(leftBtn, 3, 0, false).
 		AddItem(mainContent, 0, 1, true).
-		AddItem(helpBar, 1, 1, false) // ヘルプバーを画面下部に追加
+		AddItem(rightBtn, 3, 0, false)
 
 	return app.SetRoot(layout, true).EnableMouse(true).Run()
 }
