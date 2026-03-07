@@ -27,6 +27,7 @@ func displayTui(results []sheetResult) error {
 		SetDynamicColors(true).
 		SetRegions(true).
 		SetWrap(false).
+		SetScrollable(true).
 		SetHighlightedFunc(func(added, removed, remaining []string) {
 			if len(added) > 0 {
 				pages.SwitchToPage(added[0])
