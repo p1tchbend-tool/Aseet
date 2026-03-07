@@ -14,9 +14,10 @@ import (
 
 // 差分表示用のカラーコード
 const (
-	colorLightOrange = "[#ffaf00]"
-	colorLightBlue   = "[#87d7ff]"
-	colorReset       = "[-]"
+	colorDel    = "[#d55e00]"
+	colorAdd    = "[#56b4e9]"
+	colorChange = "[#f0e442]"
+	colorReset  = "[-]"
 )
 
 var diffFormula bool
@@ -127,9 +128,9 @@ var diffCmd = &cobra.Command{
 
 					// Unified Diffの出力を色付けする
 					if strings.HasPrefix(line, "-") {
-						diffLines = append(diffLines, colorLightOrange+line+colorReset)
+						diffLines = append(diffLines, colorDel+line+colorReset)
 					} else if strings.HasPrefix(line, "+") {
-						diffLines = append(diffLines, colorLightBlue+line+colorReset)
+						diffLines = append(diffLines, colorAdd+line+colorReset)
 					} else {
 						diffLines = append(diffLines, line)
 					}
@@ -234,11 +235,11 @@ var diffCmd = &cobra.Command{
 
 							var cellDiff string
 							if val1 != "" && val2 != "" {
-								cellDiff = fmt.Sprintf("%s-%s%s %s+%s%s", colorLightOrange, escapeCSVField(val1), colorReset, colorLightBlue, escapeCSVField(val2), colorReset)
+								cellDiff = fmt.Sprintf("%s-%s%s %s+%s%s", colorDel, escapeCSVField(val1), colorReset, colorAdd, escapeCSVField(val2), colorReset)
 							} else if val1 != "" {
-								cellDiff = fmt.Sprintf("%s-%s%s", colorLightOrange, escapeCSVField(val1), colorReset)
+								cellDiff = fmt.Sprintf("%s-%s%s", colorDel, escapeCSVField(val1), colorReset)
 							} else if val2 != "" {
-								cellDiff = fmt.Sprintf("%s+%s%s", colorLightBlue, escapeCSVField(val2), colorReset)
+								cellDiff = fmt.Sprintf("%s+%s%s", colorAdd, escapeCSVField(val2), colorReset)
 							}
 							diffCells = append(diffCells, cellDiff)
 						}
@@ -276,7 +277,7 @@ var diffCmd = &cobra.Command{
 					continue
 				}
 				results = append(results, sheetResult{
-					title:   fmt.Sprintf("%s%s : %s%s", colorLightOrange, filepath.Base(file1), sheet, colorReset),
+					title:   fmt.Sprintf("%s%s : %s%s", colorDel, filepath.Base(file1), sheet, colorReset),
 					content: content,
 				})
 			} else if in2 {
@@ -287,7 +288,7 @@ var diffCmd = &cobra.Command{
 					continue
 				}
 				results = append(results, sheetResult{
-					title:   fmt.Sprintf("%s%s : %s%s", colorLightBlue, filepath.Base(file2), sheet, colorReset),
+					title:   fmt.Sprintf("%s%s : %s%s", colorAdd, filepath.Base(file2), sheet, colorReset),
 					content: content,
 				})
 			}
@@ -313,14 +314,14 @@ var diffCmd = &cobra.Command{
 			})
 
 			for _, ms := range modifiedSheets {
-				summaryBuilder.WriteString(fmt.Sprintf("%s: %s\n", ms.name, strings.Join(ms.cells, ", ")))
+				summaryBuilder.WriteString(fmt.Sprintf("%s%s: %s%s\n", colorChange, ms.name, strings.Join(ms.cells, ", "), colorReset))
 			}
 		}
 
 		summaryText := summaryBuilder.String()
 		if summaryText != "" {
 			results = append([]sheetResult{{
-				title:   "[yellow]Summary[-]",
+				title:   "Summary",
 				content: summaryText,
 			}}, results...)
 		}
