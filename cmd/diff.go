@@ -254,20 +254,11 @@ var diffCmd = &cobra.Command{
 						cells: changedCells,
 					})
 					results = append(results, sheetResult{
-						title:   sheet,
+						title:   colorChange + sheet + colorReset,
 						content: strings.Join(sheetOutput, "\n"),
 					})
 				} else {
-					// 差分が全くない場合、catコマンドと同様にそのまま出力する
-					content, err := getSheetContents(f1, sheet, diffFormula)
-					if err != nil {
-						fmt.Printf("Error reading sheet %s\n", sheet)
-						continue
-					}
-					results = append(results, sheetResult{
-						title:   sheet,
-						content: content,
-					})
+					// 差分がない場合、出力しない
 				}
 			} else if in1 {
 				// 1つ目のファイルにのみ存在する場合、catコマンドと同様にそのまま出力する
