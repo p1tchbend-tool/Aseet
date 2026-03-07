@@ -77,7 +77,7 @@ func displayTui(results []sheetResult) error {
 	}
 
 	// 操作方法を表示するヘルプバーを作成
-	helpText := " [yellow]Tab[-]: Switch tab | [yellow]b / f[-]: Scroll tab | [yellow]h / j / k / l[-]: Scroll text | [yellow]g[-]: Scroll text to edge | [yellow]q[-]: Quit "
+	helpText := " [#f0e442]Tab[-]: Switch tab | [#f0e442]b / f[-]: Scroll tab | [#f0e442]h / j / k / l[-]: Scroll text | [#f0e442]g[-]: Scroll text to edge | [#f0e442]q[-]: Quit "
 	helpBar1 := tview.NewTextView().
 		SetDynamicColors(true).
 		SetText(helpText).
