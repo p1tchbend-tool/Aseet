@@ -40,7 +40,7 @@ Aseetは以下のフォーマットに対応しています。
 
 ### cat
 
-使用方法: aseet cat [file]  
+使用方法: `aseet cat [file]`  
   
 Excelファイルのシート名やセルの値を出力します。  
 オプションなしで実行した場合、シート一覧を出力します。  
@@ -57,13 +57,13 @@ Excelファイルのシート名やセルの値を出力します。
 
 ### clear
 
-使用方法: aseet clear  
+使用方法: `aseet clear`  
   
 Aseetが使用する一時ファイルをすべて削除します。
 
 ### diff
 
-使用方法: aseet diff [file1] [file2]  
+使用方法: `aseet diff [file1] [file2]`  
   
 2つのExcelファイルのシート名やセルの内容を比較し、ページャーで差分を出力します。
 
@@ -73,9 +73,19 @@ Aseetが使用する一時ファイルをすべて削除します。
 | -n, --name    | 指定したシートの値を比較します。                                          |
 | -o, --open    | 2つのファイルを一時ファイルにコピーし、既定のアプリケーションで開きます。 |
 
+以下のように、Gitの比較ツールとして登録することもできます。
+
+```powershell
+git config --global difftool.aseet.cmd 'aseet diff "$LOCAL" "$REMOTE"'
+git config --global alias.aseet 'difftool -t aseet'
+```
+
+> [!TIP]
+> `git aseet` でファイルを比較します。
+
 ### grep
 
-使用方法: aseet grep [pattern] [file or directory]  
+使用方法: `aseet grep [pattern] [file or directory]`  
   
 Excelファイルまたはディレクトリから、指定した文字列を含むセルを正規表現で検索します。
 
@@ -87,7 +97,7 @@ Excelファイルまたはディレクトリから、指定した文字列を含
 
 ### sd
 
-使用方法: aseet sd [search] [replace] [file or directory]  
+使用方法: `aseet sd [search] [replace] [file or directory]`  
   
 Excelファイルまたはディレクトリから、指定した文字列を含むセルを正規表現で置換します。  
 オプションなしで実行した場合、セルの値のみを置換します。
@@ -102,7 +112,7 @@ Excelファイルまたはディレクトリから、指定した文字列を含
 
 ### touch
 
-使用方法: aseet touch [file]  
+使用方法: `aseet touch [file]`  
   
 空のExcelファイルを作成します。  
 フォーマットは.xlsx固定となり、それ以外の拡張子を指定した場合、自動で.xlsxが補完されます。  
