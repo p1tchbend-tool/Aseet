@@ -98,16 +98,20 @@ func displayTui(results []sheetResult) error {
 			return nil
 			// タブバーを左スクロール
 		} else if event.Rune() == 'b' {
-			app.SetFocus(tabBar)
-			for range 100 {
-				app.QueueEvent(tcell.NewEventKey(tcell.KeyLeft, 0, tcell.ModNone))
+			row, col := tabBar.GetScrollOffset()
+			newCol := col - 100
+			if newCol < 0 {
+				newCol = 0
 			}
+			tabBar.ScrollTo(row, newCol)
+			app.SetFocus(pages)
+			return nil
 			// タブバーを右スクロール
 		} else if event.Rune() == 'f' {
-			app.SetFocus(tabBar)
-			for range 100 {
-				app.QueueEvent(tcell.NewEventKey(tcell.KeyRight, 0, tcell.ModNone))
-			}
+			row, col := tabBar.GetScrollOffset()
+			tabBar.ScrollTo(row, col+100)
+			app.SetFocus(pages)
+			return nil
 			// Esq or qで終了
 		} else if event.Key() == tcell.KeyEscape || event.Rune() == 'q' {
 			app.Stop()
