@@ -210,3 +210,114 @@ func openFile(path string) {
 		fmt.Printf("Error opening file %s: %v\n", path, err)
 	}
 }
+
+// 空でないセルの数をカウントする
+func countNonEmpty(row []string) int {
+	c := 0
+	for _, v := range row {
+		if v != "" {
+			c++
+		}
+	}
+	return c
+}
+
+// 2次元配列（マトリックス）を転置する
+func transpose(matrix [][]string) [][]string {
+	maxCol := 0
+	for _, row := range matrix {
+		if len(row) > maxCol {
+			maxCol = len(row)
+		}
+	}
+	res := make([][]string, maxCol)
+	for i := 0; i < maxCol; i++ {
+		res[i] = make([]string, len(matrix))
+		for j, row := range matrix {
+			if i < len(row) {
+				res[i][j] = row[i]
+			}
+		}
+	}
+	return res
+}
+
+// 2つの行の不一致要素数を計算する
+func calcMatchCost(row1, row2 []string) int {
+	matchCost := 0
+	maxL := len(row1)
+	if len(row2) > maxL {
+		maxL = len(row2)
+	}
+	for k := 0; k < maxL; k++ {
+		v1, v2 := "", ""
+		if k < len(row1) {
+			v1 = row1[k]
+		}
+		if k < len(row2) {
+			v2 = row2[k]
+		}
+		if v1 != v2 {
+			matchCost++
+		}
+	}
+	return matchCost
+}
+
+// 動的計画法（DP）を用いて2つの2次元配列のアライメント（差分）を計算する
+func align(a, b [][]string) [][2]int {
+	n, m := len(a), len(b)
+	dp := make([][]int, n+1)
+	for i := range dp {
+		dp[i] = make([]int, m+1)
+	}
+
+	// 初期化：削除コスト
+	for i := 1; i <= n; i++ {
+		dp[i][0] = dp[i-1][0] + countNonEmpty(a[i-1])
+	}
+	// 初期化：挿入コスト
+	for j := 1; j <= m; j++ {
+		dp[0][j] = dp[0][j-1] + countNonEmpty(b[j-1])
+	}
+
+	// DPテーブルを埋める
+	for i := 1; i <= n; i++ {
+		for j := 1; j <= m; j++ {
+			costDel := dp[i-1][j] + countNonEmpty(a[i-1])
+			costIns := dp[i][j-1] + countNonEmpty(b[j-1])
+			costMatch := dp[i-1][j-1] + calcMatchCost(a[i-1], b[j-1])
+
+			minCost := costDel
+			if costIns < minCost {
+				minCost = costIns
+			}
+			if costMatch < minCost {
+				minCost = costMatch
+			}
+			dp[i][j] = minCost
+		}
+	}
+
+	// バックトラックして最適なパス（アライメント）を復元する
+	var path [][2]int
+	i, j := n, m
+	for i > 0 || j > 0 {
+		if i > 0 && j > 0 {
+			if dp[i][j] == dp[i-1][j-1]+calcMatchCost(a[i-1], b[j-1]) {
+				path = append([][2]int{{i - 1, j - 1}}, path...)
+				i--
+				j--
+				continue
+			}
+		}
+		if i > 0 && dp[i][j] == dp[i-1][j]+countNonEmpty(a[i-1]) {
+			path = append([][2]int{{i - 1, -1}}, path...)
+			i--
+		} else {
+			path = append([][2]int{{-1, j - 1}}, path...)
+			j--
+		}
+	}
+	return path
+}
