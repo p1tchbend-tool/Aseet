@@ -93,16 +93,14 @@ func displayTui(results []sheetResult) error {
 
 	// 左スクロールボタン
 	leftBtn := tview.NewButton("<").SetSelectedFunc(func() {
-		//app.QueueEvent(tcell.NewEventKey(tcell.KeyLeft, 0, tcell.ModNone))
-		tabBar.ScrollTo(0, -1)
-		//app.SetFocus(pages) // フォーカスをテキストビューに戻す
+		app.QueueEvent(tcell.NewEventKey(tcell.KeyLeft, 0, tcell.ModNone))
+		app.SetFocus(pages) // フォーカスをテキストビューに戻す
 	})
 
 	// 右スクロールボタン
 	rightBtn := tview.NewButton(">").SetSelectedFunc(func() {
-		//app.QueueEvent(tcell.NewEventKey(tcell.KeyRight, 0, tcell.ModNone))
-		tabBar.ScrollTo(0, 1)
-		//app.SetFocus(pages) // フォーカスをテキストビューに戻す
+		app.QueueEvent(tcell.NewEventKey(tcell.KeyRight, 0, tcell.ModNone))
+		app.SetFocus(pages) // フォーカスをテキストビューに戻す
 	})
 
 	// テキストビューと左右のボタンを横に並べるレイアウト
