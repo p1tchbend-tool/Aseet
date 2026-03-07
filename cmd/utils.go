@@ -104,11 +104,53 @@ func displayTui(results []sheetResult) error {
 				newCol = 0
 			}
 			tabBar.ScrollTo(row, newCol)
+			app.SetFocus(pages)
 			return nil
 			// タブバーを右スクロール
 		} else if event.Rune() == 'f' {
 			row, col := tabBar.GetScrollOffset()
 			tabBar.ScrollTo(row, col+100)
+			app.SetFocus(pages)
+			return nil
+			// pagesを左に100列スクロール
+		} else if event.Rune() == 'H' {
+			_, frontPage := pages.GetFrontPage()
+			if tv, ok := frontPage.(*tview.TextView); ok {
+				row, col := tv.GetScrollOffset()
+				newCol := col - 100
+				if newCol < 0 {
+					newCol = 0
+				}
+				tv.ScrollTo(row, newCol)
+			}
+			return nil
+			// pagesを下に100行スクロール
+		} else if event.Rune() == 'J' {
+			_, frontPage := pages.GetFrontPage()
+			if tv, ok := frontPage.(*tview.TextView); ok {
+				row, col := tv.GetScrollOffset()
+				tv.ScrollTo(row+100, col)
+			}
+			return nil
+			// pagesを上に100行スクロール
+		} else if event.Rune() == 'K' {
+			_, frontPage := pages.GetFrontPage()
+			if tv, ok := frontPage.(*tview.TextView); ok {
+				row, col := tv.GetScrollOffset()
+				newRow := row - 100
+				if newRow < 0 {
+					newRow = 0
+				}
+				tv.ScrollTo(newRow, col)
+			}
+			return nil
+			// pagesを右に100列スクロール
+		} else if event.Rune() == 'L' {
+			_, frontPage := pages.GetFrontPage()
+			if tv, ok := frontPage.(*tview.TextView); ok {
+				row, col := tv.GetScrollOffset()
+				tv.ScrollTo(row, col+100)
+			}
 			return nil
 			// Esq or qで終了
 		} else if event.Key() == tcell.KeyEscape || event.Rune() == 'q' {
