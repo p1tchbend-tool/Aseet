@@ -110,6 +110,7 @@ func displayTui(results []sheetResult) error {
 		}
 		app.SetFocus(lastFocus) // 最後にフォーカスがあったコンポーネントに戻す
 	})
+	leftBtn.SetBackgroundColor(tcell.ColorDefault)
 
 	// 右スクロールボタン
 	rightBtn := tview.NewButton("▷").SetSelectedFunc(func() {
@@ -118,6 +119,7 @@ func displayTui(results []sheetResult) error {
 		}
 		app.SetFocus(lastFocus) // 最後にフォーカスがあったコンポーネントに戻す
 	})
+	rightBtn.SetBackgroundColor(tcell.ColorDefault)
 
 	mainContent := tview.NewFlex().
 		SetDirection(tview.FlexRow).
