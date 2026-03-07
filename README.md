@@ -120,8 +120,8 @@ Excelファイルまたはディレクトリから、指定した文字列を含
 
 ## ライセンス
 
-本アプリは、[MIT ライセンス](https://github.com/p1tchbend-tool/Aseet/blob/master/LICENSE.txt) で提供されます。  
-サードパーティーソフトウェアのライセンスについては、[こちら](https://github.com/p1tchbend-tool/Aseet/blob/master/NOTICE.md) を参照してください。
+本アプリは、[MIT ライセンス](https://github.com/p1tchbend-tool/Aseet/blob/main/LICENSE.txt) で提供されます。  
+サードパーティーソフトウェアのライセンスについては、[こちら](https://github.com/p1tchbend-tool/Aseet/blob/main/NOTICE.md) を参照してください。
 
 ## 連絡先
 
