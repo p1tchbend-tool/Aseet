@@ -10,7 +10,7 @@ import (
 
 var clearCmd = &cobra.Command{
 	Use:   "clear",
-	Short: "Delete temporary files.",
+	Short: "Delete temporary files",
 	Long:  `Delete all temporary files in the aseet folder.`,
 	Args:  cobra.NoArgs,
 	Run: func(cmd *cobra.Command, args []string) {

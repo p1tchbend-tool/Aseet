@@ -19,7 +19,7 @@ var sdHyperlink bool
 
 var sdCmd = &cobra.Command{
 	Use:   "sd [search] [replace] [file or directory]",
-	Short: "Search and replace strings in an Excel file or directory.",
+	Short: "Search and replace strings in an Excel file or directory",
 	Long:  `Search for a string and replace it with another string in all cells of all sheets in the specified Excel file or directory.`,
 	Args:  cobra.ExactArgs(3),
 	Run: func(cmd *cobra.Command, args []string) {

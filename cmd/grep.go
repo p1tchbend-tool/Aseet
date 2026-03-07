@@ -17,7 +17,7 @@ var grepRecursive bool
 
 var grepCmd = &cobra.Command{
 	Use:   "grep [pattern] [file or directory]",
-	Short: "Search for lines containing the specified string from an Excel file or directory.",
+	Short: "Search for lines containing the specified string from an Excel file or directory",
 	Long:  `Search and display lines containing the specified string from all sheets in the specified Excel file or directory.`,
 	Args:  cobra.ExactArgs(2),
 	Run: func(cmd *cobra.Command, args []string) {

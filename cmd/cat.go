@@ -14,7 +14,7 @@ var sheetName string
 
 var catCmd = &cobra.Command{
 	Use:   "cat [file]",
-	Short: "Output sheet names or cell values of an Excel file.",
+	Short: "Output sheet names or cell values of an Excel file",
 	Long:  `When executed without options, outputs the sheet names of the specified Excel file line by line.`,
 	Args:  cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
