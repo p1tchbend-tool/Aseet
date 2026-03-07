@@ -23,7 +23,3 @@ go.work.sum
 
 # Aider files
 .aider*
-
-# OpenXML files
-*.ods
-*.xls*
