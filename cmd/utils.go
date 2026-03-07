@@ -104,22 +104,26 @@ func displayTui(results []sheetResult) error {
 	})
 
 	// 左スクロールボタン
-	leftBtn := tview.NewButton("◁").SetSelectedFunc(func() {
-		for range 100 {
-			app.QueueEvent(tcell.NewEventKey(tcell.KeyLeft, 0, tcell.ModNone))
-		}
-		app.SetFocus(lastFocus) // 最後にフォーカスがあったコンポーネントに戻す
-	})
-	leftBtn.SetBackgroundColor(tcell.ColorDefault)
+	leftBtn := tview.NewButton("◀").
+		SetStyle(tcell.StyleDefault.Background(tcell.ColorDefault)).
+		SetActivatedStyle(tcell.StyleDefault.Background(tcell.ColorDefault)).
+		SetSelectedFunc(func() {
+			for range 100 {
+				app.QueueEvent(tcell.NewEventKey(tcell.KeyLeft, 0, tcell.ModNone))
+			}
+			app.SetFocus(lastFocus) // 最後にフォーカスがあったコンポーネントに戻す
+		})
 
 	// 右スクロールボタン
-	rightBtn := tview.NewButton("▷").SetSelectedFunc(func() {
-		for range 100 {
-			app.QueueEvent(tcell.NewEventKey(tcell.KeyRight, 0, tcell.ModNone))
-		}
-		app.SetFocus(lastFocus) // 最後にフォーカスがあったコンポーネントに戻す
-	})
-	rightBtn.SetBackgroundColor(tcell.ColorDefault)
+	rightBtn := tview.NewButton("▶").
+		SetStyle(tcell.StyleDefault.Background(tcell.ColorDefault)).
+		SetActivatedStyle(tcell.StyleDefault.Background(tcell.ColorDefault)).
+		SetSelectedFunc(func() {
+			for range 100 {
+				app.QueueEvent(tcell.NewEventKey(tcell.KeyRight, 0, tcell.ModNone))
+			}
+			app.SetFocus(lastFocus) // 最後にフォーカスがあったコンポーネントに戻す
+		})
 
 	mainContent := tview.NewFlex().
 		SetDirection(tview.FlexRow).
