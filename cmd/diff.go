@@ -215,7 +215,7 @@ var diffCmd = &cobra.Command{
 							diffCells = append(diffCells, escapeCSVField(val1))
 						} else {
 							hasSheetDiff = true
-							
+
 							// 変更されたセルの座標を取得
 							rIdx := r2
 							if rIdx == -1 {
