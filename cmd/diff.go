@@ -44,8 +44,8 @@ var diffCmd = &cobra.Command{
 				os.Exit(1)
 			}
 
-			localPath := filepath.Join(aseetDir, "[LOCAL]"+filepath.Base(file1))
-			remotePath := filepath.Join(aseetDir, "[REMOTE]"+filepath.Base(file2))
+			localPath := filepath.Join(aseetDir, "[OLD]"+filepath.Base(file1))
+			remotePath := filepath.Join(aseetDir, "[NEW]"+filepath.Base(file2))
 
 			if err := copyFile(file1, localPath); err != nil {
 				fmt.Printf("Error copying file1: %v\n", err)
