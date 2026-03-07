@@ -77,12 +77,19 @@ func displayTui(results []sheetResult) error {
 	}
 
 	// 操作方法を表示するヘルプバーを作成
-	helpText := " [yellow]Tab[-]: Next tab | [yellow]Shift + Tab[-]: Previous tab | [yellow]b / f[-]: Scroll tab | [yellow]h / j / k / l[-]: Scroll | [yellow]g / G[-]: Scroll to edge | [yellow]q[-]: Quit "
-	helpBar := tview.NewTextView().
+	helpText := " [yellow]Tab[-]: Switch tab | [yellow]b / f[-]: Scroll tab | [yellow]h / j / k / l[-]: Scroll text | [yellow]g[-]: Scroll text to edge | [yellow]q[-]: Quit "
+	helpBar1 := tview.NewTextView().
 		SetDynamicColors(true).
 		SetText(helpText).
 		SetTextAlign(tview.AlignCenter)
-	helpBar.SetBackgroundColor(tcell.ColorDefault)
+	helpBar1.SetBackgroundColor(tcell.ColorDefault)
+
+	helpText = "Hold Shift to change the key behavior."
+	helpBar2 := tview.NewTextView().
+		SetDynamicColors(true).
+		SetText(helpText).
+		SetTextAlign(tview.AlignCenter)
+	helpBar2.SetBackgroundColor(tcell.ColorDefault)
 
 	currentTab := 0
 	app.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
@@ -96,21 +103,33 @@ func displayTui(results []sheetResult) error {
 			currentTab = (currentTab - 1 + len(results)) % len(results)
 			tabBar.Highlight(fmt.Sprintf("page_%d", currentTab))
 			return nil
-			// タブバーを左スクロール
+			// タブバーを左にスクロール
 		} else if event.Rune() == 'b' {
+			row, col := tabBar.GetScrollOffset()
+			newCol := col - 1
+			if newCol < 0 {
+				newCol = 0
+			}
+			tabBar.ScrollTo(row, newCol)
+			return nil
+			// タブバーを右にスクロール
+		} else if event.Rune() == 'f' {
+			row, col := tabBar.GetScrollOffset()
+			tabBar.ScrollTo(row, col+1)
+			return nil
+			// タブバーを左に100列スクロール
+		} else if event.Rune() == 'B' {
 			row, col := tabBar.GetScrollOffset()
 			newCol := col - 100
 			if newCol < 0 {
 				newCol = 0
 			}
 			tabBar.ScrollTo(row, newCol)
-			app.SetFocus(pages)
 			return nil
-			// タブバーを右スクロール
-		} else if event.Rune() == 'f' {
+			// タブバーを右に100列スクロール
+		} else if event.Rune() == 'F' {
 			row, col := tabBar.GetScrollOffset()
 			tabBar.ScrollTo(row, col+100)
-			app.SetFocus(pages)
 			return nil
 			// pagesを左に100列スクロール
 		} else if event.Rune() == 'H' {
@@ -124,20 +143,20 @@ func displayTui(results []sheetResult) error {
 				tv.ScrollTo(row, newCol)
 			}
 			return nil
-			// pagesを下に100行スクロール
+			// pagesを下に10行スクロール
 		} else if event.Rune() == 'J' {
 			_, frontPage := pages.GetFrontPage()
 			if tv, ok := frontPage.(*tview.TextView); ok {
 				row, col := tv.GetScrollOffset()
-				tv.ScrollTo(row+100, col)
+				tv.ScrollTo(row+10, col)
 			}
 			return nil
-			// pagesを上に100行スクロール
+			// pagesを上に10行スクロール
 		} else if event.Rune() == 'K' {
 			_, frontPage := pages.GetFrontPage()
 			if tv, ok := frontPage.(*tview.TextView); ok {
 				row, col := tv.GetScrollOffset()
-				newRow := row - 100
+				newRow := row - 10
 				if newRow < 0 {
 					newRow = 0
 				}
@@ -186,7 +205,8 @@ func displayTui(results []sheetResult) error {
 		SetDirection(tview.FlexRow).
 		AddItem(tabBar, 1, 1, false).
 		AddItem(pages, 0, 1, true).
-		AddItem(helpBar, 1, 1, false)
+		AddItem(helpBar1, 1, 1, false).
+		AddItem(helpBar2, 1, 1, false)
 
 	layout := tview.NewFlex().
 		SetDirection(tview.FlexColumn).
