@@ -23,6 +23,12 @@ var diffFormula bool
 var diffOpen bool
 var diffSheetName string
 
+// 変更されたシートとそのセル座標を保持する構造体
+type modifiedSheet struct {
+	name  string
+	cells []string
+}
+
 var diffCmd = &cobra.Command{
 	Use:   "diff [file1] [file2]",
 	Short: "Compare sheet names and cell contents of two Excel files",
@@ -162,7 +168,7 @@ var diffCmd = &cobra.Command{
 			}
 		}
 
-		var modifiedSheets []string
+		var modifiedSheets []modifiedSheet
 
 		// 各シートについてセルの内容を比較または出力する
 		for _, sheet := range allSheets {
@@ -188,6 +194,7 @@ var diffCmd = &cobra.Command{
 
 				hasSheetDiff := false
 				var sheetOutput []string
+				var changedCells []string
 
 				for _, rPair := range rowAlign {
 					r1, r2 := rPair[0], rPair[1]
@@ -208,6 +215,23 @@ var diffCmd = &cobra.Command{
 							diffCells = append(diffCells, escapeCSVField(val1))
 						} else {
 							hasSheetDiff = true
+							
+							// 変更されたセルの座標を取得
+							rIdx := r2
+							if rIdx == -1 {
+								rIdx = r1
+							}
+							cIdx := c2
+							if cIdx == -1 {
+								cIdx = c1
+							}
+							if rIdx != -1 && cIdx != -1 {
+								cellName, _ := excelize.CoordinatesToCellName(cIdx+1, rIdx+1)
+								if cellName != "" {
+									changedCells = append(changedCells, cellName)
+								}
+							}
+
 							var cellDiff string
 							if val1 != "" && val2 != "" {
 								cellDiff = fmt.Sprintf("%s-%s%s %s+%s%s", colorLightOrange, escapeCSVField(val1), colorReset, colorLightBlue, escapeCSVField(val2), colorReset)
@@ -224,7 +248,10 @@ var diffCmd = &cobra.Command{
 				}
 
 				if hasSheetDiff {
-					modifiedSheets = append(modifiedSheets, sheet)
+					modifiedSheets = append(modifiedSheets, modifiedSheet{
+						name:  sheet,
+						cells: changedCells,
+					})
 					results = append(results, sheetResult{
 						title:   sheet,
 						content: strings.Join(sheetOutput, "\n"),
@@ -281,10 +308,12 @@ var diffCmd = &cobra.Command{
 			summaryBuilder.WriteString("\n\n")
 
 			// 変更されたシート名を昇順ソートする
-			sort.Strings(modifiedSheets)
+			sort.Slice(modifiedSheets, func(i, j int) bool {
+				return modifiedSheets[i].name < modifiedSheets[j].name
+			})
 
-			for _, s := range modifiedSheets {
-				summaryBuilder.WriteString(fmt.Sprintf("%s\n", s))
+			for _, ms := range modifiedSheets {
+				summaryBuilder.WriteString(fmt.Sprintf("%s: %s\n", ms.name, strings.Join(ms.cells, ", ")))
 			}
 		}
 
