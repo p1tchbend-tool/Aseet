@@ -34,6 +34,15 @@ func displayTui(results []sheetResult) error {
 		})
 	tabBar.SetBackgroundColor(tcell.ColorDefault)
 
+	tabBar.SetMouseCapture(func(action tview.MouseAction, event *tcell.EventMouse) (tview.MouseAction, *tcell.EventMouse) {
+		if action == tview.MouseRightClick || action == tview.MouseMiddleClick {
+			x, y := event.Position()
+			newEvent := tcell.NewEventMouse(x, y, tcell.Button1, event.Modifiers())
+			return tview.MouseLeftClick, newEvent
+		}
+		return action, event
+	})
+
 	var tabTitles []string
 	for i, res := range results {
 		pageID := fmt.Sprintf("page_%d", i)
