@@ -23,6 +23,8 @@ func displayTui(results []sheetResult) error {
 	app := tview.NewApplication()
 	pages := tview.NewPages()
 
+	var lastFocus tview.Primitive = pages
+
 	tabBar := tview.NewTextView().
 		SetDynamicColors(true).
 		SetRegions(true).
@@ -34,6 +36,11 @@ func displayTui(results []sheetResult) error {
 			}
 		})
 	tabBar.SetBackgroundColor(tcell.ColorDefault)
+
+	// tabBarにフォーカスが当たったことを記録する
+	tabBar.SetFocusFunc(func() {
+		lastFocus = tabBar
+	})
 
 	tabBar.SetMouseCapture(func(action tview.MouseAction, event *tcell.EventMouse) (tview.MouseAction, *tcell.EventMouse) {
 		if action == tview.MouseRightClick || action == tview.MouseMiddleClick {
@@ -55,6 +62,11 @@ func displayTui(results []sheetResult) error {
 			SetScrollable(true).
 			SetWrap(false)
 		textView.SetBackgroundColor(tcell.ColorDefault)
+
+		// テキストビューにフォーカスが当たったことを記録する
+		textView.SetFocusFunc(func() {
+			lastFocus = pages
+		})
 
 		pages.AddPage(pageID, textView, true, i == 0)
 	}
@@ -94,13 +106,13 @@ func displayTui(results []sheetResult) error {
 	// 左スクロールボタン
 	leftBtn := tview.NewButton("<").SetSelectedFunc(func() {
 		app.QueueEvent(tcell.NewEventKey(tcell.KeyLeft, 0, tcell.ModNone))
-		app.SetFocus(pages) // フォーカスをテキストビューに戻す
+		app.SetFocus(lastFocus) // 最後にフォーカスがあったコンポーネントに戻す
 	})
 
 	// 右スクロールボタン
 	rightBtn := tview.NewButton(">").SetSelectedFunc(func() {
 		app.QueueEvent(tcell.NewEventKey(tcell.KeyRight, 0, tcell.ModNone))
-		app.SetFocus(pages) // フォーカスをテキストビューに戻す
+		app.SetFocus(lastFocus) // 最後にフォーカスがあったコンポーネントに戻す
 	})
 
 	// テキストビューと左右のボタンを横に並べるレイアウト
