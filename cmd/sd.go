@@ -130,6 +130,34 @@ var sdCmd = &cobra.Command{
 
 			// 対象シートをループ処理する
 			for _, sheetName := range sheetsToProcess {
+				if sdHyperlink {
+					// ハイパーリンクのみを置換対象にする場合
+					linkTypes := []string{"External", "Location"}
+					for _, linkType := range linkTypes {
+						cells, err := f.GetHyperLinkCells(sheetName, linkType)
+						if err != nil {
+							continue
+						}
+
+						for _, cellName := range cells {
+							hasLink, target, err := f.GetCellHyperLink(sheetName, cellName)
+							if err == nil && hasLink && target != "" {
+								if re.MatchString(target) {
+									newTarget := re.ReplaceAllString(target, replace)
+
+									// 取得時と同じ linkType を指定して厳密に設定する
+									if err := f.SetCellHyperLink(sheetName, cellName, newTarget, linkType); err != nil {
+										fmt.Printf("Error setting cell hyperlink for %s on sheet %s\n", cellName, sheetName)
+										continue
+									}
+									fmt.Printf("[Replaced] %s: %s: Cell %s (Hyperlink)\n", filePath, sheetName, cellName)
+								}
+							}
+						}
+					}
+					continue // ハイパーリンクの処理が終わったら次のシートへ
+				}
+
 				// シートのすべての行を取得する
 				rows, err := f.GetRows(sheetName)
 				if err != nil {
@@ -149,27 +177,7 @@ var sdCmd = &cobra.Command{
 							continue
 						}
 
-						if sdHyperlink {
-							// ハイパーリンクのみを置換対象にする
-							hasLink, target, err := f.GetCellHyperLink(sheetName, cellName)
-							if err == nil && hasLink && target != "" {
-								if re.MatchString(target) {
-									isRowModified = true
-									newTarget := re.ReplaceAllString(target, replace)
-
-									// リンクタイプを判定（簡易的に ! が含まれていれば Location、それ以外は External とする）
-									linkType := "External"
-									if strings.Contains(newTarget, "!") {
-										linkType = "Location"
-									}
-
-									if err := f.SetCellHyperLink(sheetName, cellName, newTarget, linkType); err != nil {
-										fmt.Printf("Error setting cell hyperlink for %s on sheet %s\n", cellName, sheetName)
-										continue
-									}
-								}
-							}
-						} else if sdFormula {
+						if sdFormula {
 							// 数式のみを置換対象にする
 							formula, err := f.GetCellFormula(sheetName, cellName)
 							if err == nil && formula != "" {
