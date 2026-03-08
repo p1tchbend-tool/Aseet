@@ -193,6 +193,7 @@ var sdCmd = &cobra.Command{
 								// 数式が設定されている場合はスキップ
 								continue
 							}
+
 							if re.MatchString(cellValue) {
 								isRowModified = true
 								newCellValue := re.ReplaceAllString(cellValue, replace)
