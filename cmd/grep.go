@@ -109,28 +109,29 @@ var grepCmd = &cobra.Command{
 
 				// 各行をループ処理する
 				for i, row := range rows {
-					isMatched := false
 					// 各セルをループ処理する
 					for c, value := range row {
+						cellName, err := excelize.CoordinatesToCellName(c+1, i+1)
+						if err != nil {
+							continue
+						}
+
 						searchTarget := value
+						matchType := "Value"
+
 						// 数式を検索対象にする場合
 						if grepFormula {
-							cellName, err := excelize.CoordinatesToCellName(c+1, i+1)
 							formula, err := f.GetCellFormula(sheetName, cellName)
 							if err == nil && formula != "" {
 								searchTarget = formula
+								matchType = "Formula"
 							}
 						}
 
 						// 正規表現でマッチするか判定する
 						if re.MatchString(searchTarget) {
-							isMatched = true
-							break
+							fmt.Printf("[Matched] %s: %s: Cell %s (%s)\n", filePath, sheetName, cellName, matchType)
 						}
-					}
-					// マッチした場合、ファイル名、シート名、行番号を出力する
-					if isMatched {
-						fmt.Printf("[Matched] %s: %s: Row %d\n", filePath, sheetName, i+1)
 					}
 				}
 			}
