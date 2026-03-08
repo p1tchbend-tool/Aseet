@@ -55,6 +55,7 @@ var grepCmd = &cobra.Command{
 						// 探索中のエラー（アクセス権限など）は無視して続行する
 						return nil
 					}
+
 					if !info.IsDir() {
 						ext := strings.ToLower(filepath.Ext(p))
 						if isExcelFile(ext) {
