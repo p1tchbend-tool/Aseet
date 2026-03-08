@@ -167,8 +167,6 @@ var sdCmd = &cobra.Command{
 
 				// 各行をループ処理する
 				for r, row := range rows {
-					isRowModified := false
-
 					// 各セルをループ処理する
 					for c, cellValue := range row {
 						// セルの座標からセル名（例: A1）を取得する
@@ -182,7 +180,6 @@ var sdCmd = &cobra.Command{
 							formula, err := f.GetCellFormula(sheetName, cellName)
 							if err == nil && formula != "" {
 								if re.MatchString(formula) {
-									isRowModified = true
 									newFormula := re.ReplaceAllString(formula, replace)
 									if err := f.SetCellFormula(sheetName, cellName, newFormula); err != nil {
 										fmt.Printf("Error setting cell formula for %s on sheet %s\n", cellName, sheetName)
@@ -192,6 +189,7 @@ var sdCmd = &cobra.Command{
 									if f.WorkBook != nil && f.WorkBook.CalcPr != nil {
 										f.WorkBook.CalcPr.FullCalcOnLoad = true
 									}
+									fmt.Printf("[Replaced] %s: %s: Cell %s (Formula)\n", filePath, sheetName, cellName)
 								}
 							}
 						} else {
@@ -203,19 +201,14 @@ var sdCmd = &cobra.Command{
 							}
 
 							if re.MatchString(cellValue) {
-								isRowModified = true
 								newCellValue := re.ReplaceAllString(cellValue, replace)
 								if err := f.SetCellValue(sheetName, cellName, newCellValue); err != nil {
 									fmt.Printf("Error setting cell value for %s on sheet %s\n", cellName, sheetName)
 									continue
 								}
+								fmt.Printf("[Replaced] %s: %s: Cell %s (Value)\n", filePath, sheetName, cellName)
 							}
 						}
-					}
-
-					// 行内で置換が発生した場合、結果を出力する
-					if isRowModified {
-						fmt.Printf("[Replaced] %s: %s: Row %d\n", filePath, sheetName, r+1)
 					}
 				}
 			}
