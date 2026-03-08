@@ -105,6 +105,8 @@ var sdCmd = &cobra.Command{
 				continue
 			}
 
+			fileModified := false
+
 			var sheetsToProcess []string
 			// 特定のシート名が指定された場合
 			if sdSheetName != "" {
@@ -151,6 +153,7 @@ var sdCmd = &cobra.Command{
 										continue
 									}
 									fmt.Printf("[Replaced] %s: %s: Cell %s (Hyperlink)\n", filePath, sheetName, cellName)
+									fileModified = true
 								}
 							}
 						}
@@ -190,6 +193,7 @@ var sdCmd = &cobra.Command{
 										f.WorkBook.CalcPr.FullCalcOnLoad = true
 									}
 									fmt.Printf("[Replaced] %s: %s: Cell %s (Formula)\n", filePath, sheetName, cellName)
+									fileModified = true
 								}
 							}
 						} else {
@@ -207,15 +211,18 @@ var sdCmd = &cobra.Command{
 									continue
 								}
 								fmt.Printf("[Replaced] %s: %s: Cell %s (Value)\n", filePath, sheetName, cellName)
+								fileModified = true
 							}
 						}
 					}
 				}
 			}
 
-			// 変更をファイルに保存する
-			if err := f.Save(); err != nil {
-				fmt.Printf("Error saving file %s\n", filePath)
+			// 変更があった場合のみファイルに保存する
+			if fileModified {
+				if err := f.Save(); err != nil {
+					fmt.Printf("Error saving file %s\n", filePath)
+				}
 			}
 
 			// ファイルを閉じる
