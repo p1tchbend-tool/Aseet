@@ -188,6 +188,11 @@ var sdCmd = &cobra.Command{
 							}
 						} else {
 							// セルの値のみを置換対象にする
+							formula, err := f.GetCellFormula(sheetName, cellName)
+							if err == nil && formula != "" {
+								// 数式が設定されている場合はスキップ
+								continue
+							}
 							if re.MatchString(cellValue) {
 								isRowModified = true
 								newCellValue := re.ReplaceAllString(cellValue, replace)
