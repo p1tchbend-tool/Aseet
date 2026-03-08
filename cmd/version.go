@@ -6,8 +6,8 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// Version はアプリケーションのバージョン情報を保持します
-var Version = "0.1.0"
+// Version はアプリケーションのバージョン情報を保持する
+var Version = "0.6.0"
 
 var versionCmd = &cobra.Command{
 	Use:   "version",
