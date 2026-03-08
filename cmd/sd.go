@@ -153,7 +153,7 @@ var sdCmd = &cobra.Command{
 										fmt.Printf("Error setting cell hyperlink for %s on sheet %s\n", cellName, sheetName)
 										continue
 									}
-									fmt.Printf("[Replaced] %s: %s: Cell %s (Hyperlink)\n", filePath, sheetName, cellName)
+									fmt.Printf("%s %s %s [Hyperlink] %s -> %s\n", filePath, sheetName, cellName, target, newTarget)
 									fileModified = true
 								}
 							}
@@ -189,7 +189,7 @@ var sdCmd = &cobra.Command{
 										fmt.Printf("Error setting cell formula for %s on sheet %s\n", cellName, sheetName)
 										continue
 									}
-									fmt.Printf("[Replaced] %s: %s: Cell %s (Formula)\n", filePath, sheetName, cellName)
+									fmt.Printf("%s %s %s [Formula] %s -> %s\n", filePath, sheetName, cellName, formula, newFormula)
 									fileModified = true
 								}
 							}
@@ -207,7 +207,7 @@ var sdCmd = &cobra.Command{
 									fmt.Printf("Error setting cell value for %s on sheet %s\n", cellName, sheetName)
 									continue
 								}
-								fmt.Printf("[Replaced] %s: %s: Cell %s (Value)\n", filePath, sheetName, cellName)
+								fmt.Printf("%s %s %s [Value] %s -> %s\n", filePath, sheetName, cellName, cellValue, newCellValue)
 								fileModified = true
 							}
 						}
