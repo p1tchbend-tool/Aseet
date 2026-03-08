@@ -130,7 +130,7 @@ var grepCmd = &cobra.Command{
 
 						// 正規表現でマッチするか判定する
 						if re.MatchString(searchTarget) {
-							fmt.Printf("[Matched] %s: %s: Cell %s (%s)\n", filePath, sheetName, cellName, matchType)
+							fmt.Printf("%s %s %s [%s] %s\n", filePath, sheetName, cellName, matchType, searchTarget)
 						}
 					}
 				}
