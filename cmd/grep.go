@@ -14,6 +14,7 @@ import (
 var grepFormula bool
 var grepIgnoreCase bool
 var grepRecursive bool
+var grepHyperlink bool
 
 var grepCmd = &cobra.Command{
 	Use:   "grep [pattern] [file or directory]",
@@ -100,6 +101,26 @@ var grepCmd = &cobra.Command{
 
 			// 全シートをループ処理する
 			for _, sheetName := range f.GetSheetList() {
+				// ハイパーリンクを検索対象にする場合
+				if grepHyperlink {
+					linkTypes := []string{"External", "Location"}
+					for _, linkType := range linkTypes {
+						cells, err := f.GetHyperLinkCells(sheetName, linkType)
+						if err != nil {
+							continue
+						}
+
+						for _, cellName := range cells {
+							hasLink, target, err := f.GetCellHyperLink(sheetName, cellName)
+							if err == nil && hasLink && target != "" {
+								if re.MatchString(target) {
+									fmt.Printf("%s %s %s [Hyperlink] %s\n", filePath, sheetName, cellName, target)
+								}
+							}
+						}
+					}
+				}
+
 				// シートのすべての行を取得する
 				rows, err := f.GetRows(sheetName)
 				if err != nil {
@@ -147,5 +168,6 @@ func init() {
 	rootCmd.AddCommand(grepCmd)
 	grepCmd.Flags().BoolVarP(&grepFormula, "formula", "f", false, "If a cell contains a formula, search the formula instead.")
 	grepCmd.Flags().BoolVarP(&grepIgnoreCase, "ignore-case", "i", false, "Ignore case distinctions during the search.")
+	grepCmd.Flags().BoolVarP(&grepHyperlink, "hyperlink", "l", false, "Search hyperlinks.")
 	grepCmd.Flags().BoolVarP(&grepRecursive, "recursive", "r", false, "Search recursively through subdirectories.")
 }
