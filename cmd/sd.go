@@ -63,6 +63,7 @@ var sdCmd = &cobra.Command{
 						// 探索中のエラー（アクセス権限など）は無視して続行する
 						return nil
 					}
+
 					if !info.IsDir() {
 						ext := strings.ToLower(filepath.Ext(p))
 						if isExcelFile(ext) {
@@ -188,10 +189,6 @@ var sdCmd = &cobra.Command{
 										fmt.Printf("Error setting cell formula for %s on sheet %s\n", cellName, sheetName)
 										continue
 									}
-									// 数式を更新したため再計算フラグを立てる
-									if f.WorkBook != nil && f.WorkBook.CalcPr != nil {
-										f.WorkBook.CalcPr.FullCalcOnLoad = true
-									}
 									fmt.Printf("[Replaced] %s: %s: Cell %s (Formula)\n", filePath, sheetName, cellName)
 									fileModified = true
 								}
@@ -218,8 +215,12 @@ var sdCmd = &cobra.Command{
 				}
 			}
 
-			// 変更があった場合のみファイルに保存する
+			// 変更があった場合、再計算フラグを立てて保存する
 			if fileModified {
+				if f.WorkBook != nil && f.WorkBook.CalcPr != nil {
+					f.WorkBook.CalcPr.FullCalcOnLoad = true
+				}
+
 				if err := f.Save(); err != nil {
 					fmt.Printf("Error saving file %s\n", filePath)
 				}
