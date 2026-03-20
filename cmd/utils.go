@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"runtime"
 	"strings"
 
@@ -437,4 +438,39 @@ func align(a, b [][]string) [][2]int {
 		}
 	}
 	return path
+}
+
+// 指定されたディレクトリ内のExcelファイルを探索してパスの配列を返す
+func findExcelFiles(dirPath string, recursive bool) []string {
+	var files []string
+
+	if recursive {
+		_ = filepath.Walk(dirPath, func(p string, info os.FileInfo, err error) error {
+			if err != nil {
+				// 探索中のエラー（アクセス権限など）は無視して続行する
+				return nil
+			}
+			if !info.IsDir() {
+				ext := strings.ToLower(filepath.Ext(p))
+				if isExcelFile(ext) {
+					files = append(files, p)
+				}
+			}
+			return nil
+		})
+	} else {
+		entries, err := os.ReadDir(dirPath)
+		if err == nil {
+			for _, entry := range entries {
+				if !entry.IsDir() {
+					ext := strings.ToLower(filepath.Ext(entry.Name()))
+					if isExcelFile(ext) {
+						files = append(files, filepath.Join(dirPath, entry.Name()))
+					}
+				}
+			}
+		}
+	}
+
+	return files
 }
