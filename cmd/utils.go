@@ -25,11 +25,9 @@ type bookResult struct {
 	sheets   []sheetResult
 }
 
-// TUIアプリケーションを構築して表示する共通処理
-func displayTui(results []sheetResult) error {
-	app := tview.NewApplication()
+// シートのタブ画面（メインコンテンツ）を構築する共通モジュール
+func createSheetTabs(app *tview.Application, results []sheetResult) tview.Primitive {
 	pages := tview.NewPages()
-
 	var lastFocus tview.Primitive = pages
 
 	tabBar := tview.NewTextView().
@@ -44,7 +42,6 @@ func displayTui(results []sheetResult) error {
 		})
 	tabBar.SetBackgroundColor(tcell.ColorDefault)
 
-	// tabBarにフォーカスが当たったことを記録する
 	tabBar.SetFocusFunc(func() {
 		lastFocus = tabBar
 	})
@@ -70,7 +67,6 @@ func displayTui(results []sheetResult) error {
 			SetWrap(false)
 		textView.SetBackgroundColor(tcell.ColorDefault)
 
-		// テキストビューにフォーカスが当たったことを記録する
 		textView.SetFocusFunc(func() {
 			lastFocus = pages
 		})
@@ -83,7 +79,6 @@ func displayTui(results []sheetResult) error {
 		tabBar.Highlight(fmt.Sprintf("page_%d", 0))
 	}
 
-	// 操作方法を表示するヘルプバーを作成
 	helpText := " [#f0e442]Tab[-]: Switch tab | [#f0e442]b / f[-]: Scroll tab | [#f0e442]h / j / k / l[-]: Scroll text | [#f0e442]g[-]: Scroll text to edge | [#f0e442]q[-]: Quit "
 	helpBar1 := tview.NewTextView().
 		SetDynamicColors(true).
@@ -91,26 +86,31 @@ func displayTui(results []sheetResult) error {
 		SetTextAlign(tview.AlignCenter)
 	helpBar1.SetBackgroundColor(tcell.ColorDefault)
 
-	helpText = "Hold Shift to change the key behavior."
+	helpText2 := "Hold Shift to change the key behavior."
 	helpBar2 := tview.NewTextView().
 		SetDynamicColors(true).
-		SetText(helpText).
+		SetText(helpText2).
 		SetTextAlign(tview.AlignCenter)
 	helpBar2.SetBackgroundColor(tcell.ColorDefault)
 
+	layout := tview.NewFlex().
+		SetDirection(tview.FlexRow).
+		AddItem(tabBar, 1, 1, false).
+		AddItem(pages, 0, 1, true).
+		AddItem(helpBar1, 1, 1, false).
+		AddItem(helpBar2, 1, 1, false)
+
 	currentTab := 0
-	app.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
-		// Tabキーで次のタブへ
+	// コンポーネント単位でキーバインドを設定
+	layout.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
 		if event.Key() == tcell.KeyTab {
 			currentTab = (currentTab + 1) % len(results)
 			tabBar.Highlight(fmt.Sprintf("page_%d", currentTab))
 			return nil
-			// Shift+Tabキーで前のタブへ
 		} else if event.Key() == tcell.KeyBacktab {
 			currentTab = (currentTab - 1 + len(results)) % len(results)
 			tabBar.Highlight(fmt.Sprintf("page_%d", currentTab))
 			return nil
-			// タブバーを左にスクロール
 		} else if event.Rune() == 'b' {
 			row, col := tabBar.GetScrollOffset()
 			newCol := col - 1
@@ -119,12 +119,10 @@ func displayTui(results []sheetResult) error {
 			}
 			tabBar.ScrollTo(row, newCol)
 			return nil
-			// タブバーを右にスクロール
 		} else if event.Rune() == 'f' {
 			row, col := tabBar.GetScrollOffset()
 			tabBar.ScrollTo(row, col+1)
 			return nil
-			// タブバーを左に100列スクロール
 		} else if event.Rune() == 'B' {
 			row, col := tabBar.GetScrollOffset()
 			newCol := col - 100
@@ -133,12 +131,10 @@ func displayTui(results []sheetResult) error {
 			}
 			tabBar.ScrollTo(row, newCol)
 			return nil
-			// タブバーを右に100列スクロール
 		} else if event.Rune() == 'F' {
 			row, col := tabBar.GetScrollOffset()
 			tabBar.ScrollTo(row, col+100)
 			return nil
-			// pagesを左に100列スクロール
 		} else if event.Rune() == 'H' {
 			_, frontPage := pages.GetFrontPage()
 			if tv, ok := frontPage.(*tview.TextView); ok {
@@ -150,7 +146,6 @@ func displayTui(results []sheetResult) error {
 				tv.ScrollTo(row, newCol)
 			}
 			return nil
-			// pagesを下に10行スクロール
 		} else if event.Rune() == 'J' {
 			_, frontPage := pages.GetFrontPage()
 			if tv, ok := frontPage.(*tview.TextView); ok {
@@ -158,7 +153,6 @@ func displayTui(results []sheetResult) error {
 				tv.ScrollTo(row+10, col)
 			}
 			return nil
-			// pagesを上に10行スクロール
 		} else if event.Rune() == 'K' {
 			_, frontPage := pages.GetFrontPage()
 			if tv, ok := frontPage.(*tview.TextView); ok {
@@ -170,7 +164,6 @@ func displayTui(results []sheetResult) error {
 				tv.ScrollTo(newRow, col)
 			}
 			return nil
-			// pagesを右に100列スクロール
 		} else if event.Rune() == 'L' {
 			_, frontPage := pages.GetFrontPage()
 			if tv, ok := frontPage.(*tview.TextView); ok {
@@ -178,7 +171,6 @@ func displayTui(results []sheetResult) error {
 				tv.ScrollTo(row, col+100)
 			}
 			return nil
-			// Esq or qで終了
 		} else if event.Key() == tcell.KeyEscape || event.Rune() == 'q' {
 			app.Stop()
 			return nil
@@ -186,7 +178,6 @@ func displayTui(results []sheetResult) error {
 		return event
 	})
 
-	// 左スクロールボタン
 	leftBtn := tview.NewButton("◀").
 		SetStyle(tcell.StyleDefault.Background(tcell.ColorDefault)).
 		SetActivatedStyle(tcell.StyleDefault.Background(tcell.ColorDefault)).
@@ -194,10 +185,9 @@ func displayTui(results []sheetResult) error {
 			for range 100 {
 				app.QueueEvent(tcell.NewEventKey(tcell.KeyLeft, 0, tcell.ModNone))
 			}
-			app.SetFocus(lastFocus) // 最後にフォーカスがあったコンポーネントに戻す
+			app.SetFocus(lastFocus)
 		})
 
-	// 右スクロールボタン
 	rightBtn := tview.NewButton("▶").
 		SetStyle(tcell.StyleDefault.Background(tcell.ColorDefault)).
 		SetActivatedStyle(tcell.StyleDefault.Background(tcell.ColorDefault)).
@@ -205,22 +195,22 @@ func displayTui(results []sheetResult) error {
 			for range 100 {
 				app.QueueEvent(tcell.NewEventKey(tcell.KeyRight, 0, tcell.ModNone))
 			}
-			app.SetFocus(lastFocus) // 最後にフォーカスがあったコンポーネントに戻す
+			app.SetFocus(lastFocus)
 		})
 
-	mainContent := tview.NewFlex().
-		SetDirection(tview.FlexRow).
-		AddItem(tabBar, 1, 1, false).
-		AddItem(pages, 0, 1, true).
-		AddItem(helpBar1, 1, 1, false).
-		AddItem(helpBar2, 1, 1, false)
-
-	layout := tview.NewFlex().
+	wrapper := tview.NewFlex().
 		SetDirection(tview.FlexColumn).
 		AddItem(leftBtn, 3, 0, false).
-		AddItem(mainContent, 0, 1, true).
+		AddItem(layout, 0, 1, true).
 		AddItem(rightBtn, 3, 0, false)
 
+	return wrapper
+}
+
+// TUIアプリケーションを構築して表示する共通処理
+func displayTui(results []sheetResult) error {
+	app := tview.NewApplication()
+	layout := createSheetTabs(app, results)
 	return app.SetRoot(layout, true).EnableMouse(true).Run()
 }
 
@@ -233,60 +223,19 @@ func displayDirTui(books []bookResult) error {
 
 	rightPages := tview.NewPages()
 
-	// 各ブックの右ペイン（シートタブ群）を構築
+	// 各ブックの右ペインに共通モジュールを割り当てる
 	for i, book := range books {
 		bookPageID := fmt.Sprintf("book_%d", i)
-		
-		// シート用のPagesとTabBar
-		sheetPages := tview.NewPages()
-		tabBar := tview.NewTextView().
-			SetDynamicColors(true).
-			SetRegions(true).
-			SetWrap(false).
-			SetScrollable(true).
-			SetHighlightedFunc(func(added, removed, remaining []string) {
-				if len(added) > 0 {
-					sheetPages.SwitchToPage(added[0])
-				}
-			})
-		tabBar.SetBackgroundColor(tcell.ColorDefault)
-
-		var tabTitles []string
-		for j, res := range book.sheets {
-			pageID := fmt.Sprintf("sheet_%d_%d", i, j)
-			tabTitles = append(tabTitles, fmt.Sprintf(`["%s"] %s [""]`, pageID, res.title))
-
-			textView := tview.NewTextView().
-				SetDynamicColors(true).
-				SetText(res.content).
-				SetScrollable(true).
-				SetWrap(false)
-			textView.SetBackgroundColor(tcell.ColorDefault)
-
-			sheetPages.AddPage(pageID, textView, true, j == 0)
-		}
-
-		tabBar.SetText(strings.Join(tabTitles, " | "))
-		if len(book.sheets) > 0 {
-			tabBar.Highlight(fmt.Sprintf("sheet_%d_0", i))
-		}
-
-		flex := tview.NewFlex().SetDirection(tview.FlexRow).
-			AddItem(tabBar, 1, 1, false).
-			AddItem(sheetPages, 0, 1, true)
-
-		rightPages.AddPage(bookPageID, flex, true, i == 0)
-
-		// リストにアイテムを追加
+		sheetTabs := createSheetTabs(app, book.sheets)
+		rightPages.AddPage(bookPageID, sheetTabs, true, i == 0)
 		list.AddItem(book.fileName, "", 0, nil)
 	}
 
-	// リストの選択が変わったときに右ペインを切り替える
 	list.SetChangedFunc(func(index int, mainText string, secondaryText string, shortcut rune) {
 		rightPages.SwitchToPage(fmt.Sprintf("book_%d", index))
 	})
 
-	helpText := " [#f0e442]Up/Down[-]: Select file | [#f0e442]Tab[-]: Switch focus | [#f0e442]q[-]: Quit "
+	helpText := " [#f0e442]Up/Down[-]: Select file | [#f0e442]Ctrl+F[-]: Switch focus | [#f0e442]q[-]: Quit "
 	helpBar := tview.NewTextView().
 		SetDynamicColors(true).
 		SetText(helpText).
@@ -300,8 +249,10 @@ func displayDirTui(books []bookResult) error {
 		AddItem(mainLayout, 0, 1, true).
 		AddItem(helpBar, 1, 1, false)
 
+	// アプリケーション全体のキーバインド
 	app.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
-		if event.Key() == tcell.KeyTab {
+		// Ctrl+F でペイン間のフォーカスを切り替える
+		if event.Key() == tcell.KeyCtrlF {
 			if app.GetFocus() == list {
 				app.SetFocus(rightPages)
 			} else {
