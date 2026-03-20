@@ -82,17 +82,21 @@ var diffCmd = &cobra.Command{
 				f2, ok2 := fileMap2[rel]
 
 				var results []sheetResult
+				var title string
 				if ok1 && ok2 {
 					results = compareExcelFiles(f1, f2)
+					title = colorChange + rel + colorReset
 				} else if ok1 {
-					results = []sheetResult{{title: "Info", content: fmt.Sprintf("%s only exists in %s", rel, path1)}}
+					results = []sheetResult{{title: "Summary", content: fmt.Sprintf("\n%s only exists in %s", rel, path1)}}
+					title = colorDel + "-" + rel + colorReset
 				} else if ok2 {
-					results = []sheetResult{{title: "Info", content: fmt.Sprintf("%s only exists in %s", rel, path2)}}
+					results = []sheetResult{{title: "Summary", content: fmt.Sprintf("\n%s only exists in %s", rel, path2)}}
+					title = colorAdd + "+" + rel + colorReset
 				}
 
 				if len(results) > 0 {
 					books = append(books, bookResult{
-						fileName: rel,
+						fileName: title,
 						sheets:   results,
 					})
 				}
@@ -164,13 +168,13 @@ func handleDiffOpen(file1, file2 string) {
 func compareExcelFiles(file1, file2 string) []sheetResult {
 	f1, err := excelize.OpenFile(file1)
 	if err != nil {
-		return []sheetResult{{title: "Error", content: fmt.Sprintf("Error opening file %s", file1)}}
+		return []sheetResult{{title: "Summary", content: fmt.Sprintf("\nError opening file %s", file1)}}
 	}
 	defer f1.Close()
 
 	f2, err := excelize.OpenFile(file2)
 	if err != nil {
-		return []sheetResult{{title: "Error", content: fmt.Sprintf("Error opening file %s", file2)}}
+		return []sheetResult{{title: "Summary", content: fmt.Sprintf("\nError opening file %s", file2)}}
 	}
 	defer f2.Close()
 
@@ -227,7 +231,7 @@ func compareExcelFiles(file1, file2 string) []sheetResult {
 
 	if diffSheetName != "" {
 		if !sheetMap1[diffSheetName] && !sheetMap2[diffSheetName] {
-			return []sheetResult{{title: "Error", content: fmt.Sprintf("Sheet %s does not exist in either file.", diffSheetName)}}
+			return []sheetResult{{title: "Summary", content: fmt.Sprintf("\nSheet %s does not exist in either file.", diffSheetName)}}
 		}
 		allSheets = []string{diffSheetName}
 	} else {
@@ -340,7 +344,7 @@ func compareExcelFiles(file1, file2 string) []sheetResult {
 
 	var summaryBuilder strings.Builder
 	if sheetListDiff != "" {
-		summaryBuilder.WriteString("\n[Sheet Name Differences]\n\n")
+		summaryBuilder.WriteString("\n[Sheet Differences]\n\n")
 		summaryBuilder.WriteString(sheetListDiff)
 		summaryBuilder.WriteString("\n")
 	}
