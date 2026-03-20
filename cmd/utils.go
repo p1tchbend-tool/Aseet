@@ -231,6 +231,7 @@ func displayDirTui(books []bookResult) error {
 	list := tview.NewList().ShowSecondaryText(false)
 	list.SetBorder(true).SetTitle(" File Differences ")
 	list.SetBackgroundColor(tcell.ColorDefault)
+	list.SetMainTextStyle(tcell.StyleDefault.Background(tcell.ColorDefault))
 
 	rightPages := tview.NewPages()
 
