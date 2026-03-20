@@ -7,7 +7,7 @@ import (
 )
 
 // Version はアプリケーションのバージョン情報を保持する
-var Version = "0.6.0"
+var Version = "0.7.0"
 
 var versionCmd = &cobra.Command{
 	Use:   "version",
