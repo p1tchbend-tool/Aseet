@@ -120,7 +120,7 @@ var diffCmd = &cobra.Command{
 				return
 			}
 
-			if err := displayTui(results); err != nil {
+			if err := displayFileTui(results); err != nil {
 				fmt.Printf("Error running TUI: %v\n", err)
 				os.Exit(1)
 			}

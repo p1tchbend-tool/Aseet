@@ -79,26 +79,10 @@ func createSheetTabs(app *tview.Application, results []sheetResult) tview.Primit
 		tabBar.Highlight(fmt.Sprintf("page_%d", 0))
 	}
 
-	helpText := " [#f0e442]Tab[-]: Switch tab | [#f0e442]b / f[-]: Scroll tab | [#f0e442]h / j / k / l[-]: Scroll text | [#f0e442]g[-]: Scroll text to edge | [#f0e442]q[-]: Quit "
-	helpBar1 := tview.NewTextView().
-		SetDynamicColors(true).
-		SetText(helpText).
-		SetTextAlign(tview.AlignCenter)
-	helpBar1.SetBackgroundColor(tcell.ColorDefault)
-
-	helpText2 := "Hold Shift to change the key behavior."
-	helpBar2 := tview.NewTextView().
-		SetDynamicColors(true).
-		SetText(helpText2).
-		SetTextAlign(tview.AlignCenter)
-	helpBar2.SetBackgroundColor(tcell.ColorDefault)
-
 	layout := tview.NewFlex().
 		SetDirection(tview.FlexRow).
 		AddItem(tabBar, 1, 1, false).
-		AddItem(pages, 0, 1, true).
-		AddItem(helpBar1, 1, 1, false).
-		AddItem(helpBar2, 1, 1, false)
+		AddItem(pages, 0, 1, true)
 
 	currentTab := 0
 	// コンポーネント単位でキーバインドを設定
@@ -171,9 +155,6 @@ func createSheetTabs(app *tview.Application, results []sheetResult) tview.Primit
 				tv.ScrollTo(row, col+100)
 			}
 			return nil
-		} else if event.Key() == tcell.KeyEscape || event.Rune() == 'q' {
-			app.Stop()
-			return nil
 		}
 		return event
 	})
@@ -208,10 +189,39 @@ func createSheetTabs(app *tview.Application, results []sheetResult) tview.Primit
 }
 
 // TUIアプリケーションを構築して表示する共通処理
-func displayTui(results []sheetResult) error {
+func displayFileTui(results []sheetResult) error {
 	app := tview.NewApplication()
 	layout := createSheetTabs(app, results)
-	return app.SetRoot(layout, true).EnableMouse(true).Run()
+
+	helpText1 := " [#f0e442]Tab[-]: Switch tab | [#f0e442]b / f[-]: Scroll tab | [#f0e442]h / j / k / l[-]: Scroll text | [#f0e442]g[-]: Scroll text to edge | [#f0e442]q[-]: Quit "
+	helpBar1 := tview.NewTextView().
+		SetDynamicColors(true).
+		SetText(helpText1).
+		SetTextAlign(tview.AlignCenter)
+	helpBar1.SetBackgroundColor(tcell.ColorDefault)
+
+	helpText2 := "Hold Shift to change the key behavior."
+	helpBar2 := tview.NewTextView().
+		SetDynamicColors(true).
+		SetText(helpText2).
+		SetTextAlign(tview.AlignCenter)
+	helpBar2.SetBackgroundColor(tcell.ColorDefault)
+
+	rootLayout := tview.NewFlex().SetDirection(tview.FlexRow).
+		AddItem(layout, 0, 1, true).
+		AddItem(helpBar1, 1, 1, false).
+		AddItem(helpBar2, 1, 1, false)
+
+	// アプリケーション全体のキーバインド
+	app.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
+		if event.Key() == tcell.KeyEscape || event.Rune() == 'q' {
+			app.Stop()
+			return nil
+		}
+		return event
+	})
+
+	return app.SetRoot(rootLayout, true).EnableMouse(true).Run()
 }
 
 // ディレクトリ比較用の2ペインTUIを表示する
@@ -219,7 +229,8 @@ func displayDirTui(books []bookResult) error {
 	app := tview.NewApplication()
 
 	list := tview.NewList().ShowSecondaryText(false)
-	list.SetBorder(true).SetTitle("Files")
+	list.SetBorder(true).SetTitle(" File Differences ")
+	list.SetBackgroundColor(tcell.ColorDefault)
 
 	rightPages := tview.NewPages()
 
@@ -235,11 +246,19 @@ func displayDirTui(books []bookResult) error {
 		rightPages.SwitchToPage(fmt.Sprintf("book_%d", index))
 	})
 
-	helpText := " [#f0e442]Up/Down[-]: Select file | [#f0e442]Space[-]: Switch focus | [#f0e442]q[-]: Quit "
-	helpBar := tview.NewTextView().
+	helpText1 := " [#f0e442]Space[-]: Switch pain | [#f0e442]Tab[-]: Switch file / sheet | [#f0e442]b / f[-]: Scroll tab | [#f0e442]h / j / k / l[-]: Scroll text | [#f0e442]g[-]: Scroll text to edge | [#f0e442]q[-]: Quit "
+	helpBar1 := tview.NewTextView().
 		SetDynamicColors(true).
-		SetText(helpText).
+		SetText(helpText1).
 		SetTextAlign(tview.AlignCenter)
+	helpBar1.SetBackgroundColor(tcell.ColorDefault)
+
+	helpText2 := "Hold Shift to change the key behavior."
+	helpBar2 := tview.NewTextView().
+		SetDynamicColors(true).
+		SetText(helpText2).
+		SetTextAlign(tview.AlignCenter)
+	helpBar2.SetBackgroundColor(tcell.ColorDefault)
 
 	mainLayout := tview.NewFlex().
 		AddItem(list, 30, 1, true).
@@ -247,7 +266,8 @@ func displayDirTui(books []bookResult) error {
 
 	rootLayout := tview.NewFlex().SetDirection(tview.FlexRow).
 		AddItem(mainLayout, 0, 1, true).
-		AddItem(helpBar, 1, 1, false)
+		AddItem(helpBar1, 1, 1, false).
+		AddItem(helpBar2, 1, 1, false)
 
 	// アプリケーション全体のキーバインド
 	app.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
