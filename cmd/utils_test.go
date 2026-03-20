@@ -1,7 +1,10 @@
 package cmd
 
 import (
+	"os"
+	"path/filepath"
 	"reflect"
+	"sort"
 	"testing"
 
 	"github.com/xuri/excelize/v2"
@@ -177,4 +180,66 @@ func TestAlign(t *testing.T) {
 	if !reflect.DeepEqual(got, expected) {
 		t.Errorf("align() = %v, want %v", got, expected)
 	}
+}
+
+func TestFindExcelFiles(t *testing.T) {
+	// テスト用の一時ディレクトリを作成（テスト終了時に自動削除されます）
+	tempDir := t.TempDir()
+
+	// テスト用のディレクトリ構造とファイルを作成
+	// tempDir/
+	// ├── a.xlsx      (対象)
+	// ├── b.txt       (対象外)
+	// └── sub/
+	//     ├── c.xlsm  (対象)
+	//     └── d.csv   (対象外)
+
+	subDir := filepath.Join(tempDir, "sub")
+	if err := os.Mkdir(subDir, 0755); err != nil {
+		t.Fatalf("failed to create sub directory: %v", err)
+	}
+
+	filesToCreate := []string{
+		filepath.Join(tempDir, "a.xlsx"),
+		filepath.Join(tempDir, "b.txt"),
+		filepath.Join(subDir, "c.xlsm"),
+		filepath.Join(subDir, "d.csv"),
+	}
+
+	for _, f := range filesToCreate {
+		if err := os.WriteFile(f, []byte("dummy"), 0644); err != nil {
+			t.Fatalf("failed to create dummy file %s: %v", f, err)
+		}
+	}
+
+	t.Run("Non-recursive", func(t *testing.T) {
+		got := findExcelFiles(tempDir, false)
+		expected := []string{
+			filepath.Join(tempDir, "a.xlsx"),
+		}
+
+		// 順序に依存しないようにソートして比較
+		sort.Strings(got)
+		sort.Strings(expected)
+
+		if !reflect.DeepEqual(got, expected) {
+			t.Errorf("findExcelFiles(recursive=false) = %v, want %v", got, expected)
+		}
+	})
+
+	t.Run("Recursive", func(t *testing.T) {
+		got := findExcelFiles(tempDir, true)
+		expected := []string{
+			filepath.Join(tempDir, "a.xlsx"),
+			filepath.Join(subDir, "c.xlsm"),
+		}
+
+		// 順序に依存しないようにソートして比較
+		sort.Strings(got)
+		sort.Strings(expected)
+
+		if !reflect.DeepEqual(got, expected) {
+			t.Errorf("findExcelFiles(recursive=true) = %v, want %v", got, expected)
+		}
+	})
 }
