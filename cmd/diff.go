@@ -208,8 +208,6 @@ func compareExcelFiles(file1, file2 string) []sheetResult {
 					diffLines = append(diffLines, colorDel+line+colorReset)
 				} else if strings.HasPrefix(line, "+") {
 					diffLines = append(diffLines, colorAdd+line+colorReset)
-				} else {
-					diffLines = append(diffLines, line)
 				}
 			}
 			sheetListDiff = strings.Join(diffLines, "\n")
