@@ -183,7 +183,7 @@ func TestAlign(t *testing.T) {
 }
 
 func TestFindExcelFiles(t *testing.T) {
-	// テスト用の一時ディレクトリを作成（テスト終了時に自動削除されます）
+	// テスト用の一時ディレクトリを作成（テスト終了時に自動削除）
 	tempDir := t.TempDir()
 
 	// テスト用のディレクトリ構造とファイルを作成
