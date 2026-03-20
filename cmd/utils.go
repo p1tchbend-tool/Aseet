@@ -1,4 +1,3 @@
-// entire file content ...
 package cmd
 
 import (
@@ -562,4 +561,3 @@ func findExcelFiles(dirPath string, recursive bool) []string {
 
 	return files
 }
-// ... goes in between
