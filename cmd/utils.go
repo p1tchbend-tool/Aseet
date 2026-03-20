@@ -235,7 +235,7 @@ func displayDirTui(books []bookResult) error {
 		rightPages.SwitchToPage(fmt.Sprintf("book_%d", index))
 	})
 
-	helpText := " [#f0e442]Up/Down[-]: Select file | [#f0e442]Ctrl+F[-]: Switch focus | [#f0e442]q[-]: Quit "
+	helpText := " [#f0e442]Up/Down[-]: Select file | [#f0e442]Space[-]: Switch focus | [#f0e442]q[-]: Quit "
 	helpBar := tview.NewTextView().
 		SetDynamicColors(true).
 		SetText(helpText).
@@ -251,8 +251,8 @@ func displayDirTui(books []bookResult) error {
 
 	// アプリケーション全体のキーバインド
 	app.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
-		// Ctrl+F でペイン間のフォーカスを切り替える
-		if event.Key() == tcell.KeyCtrlF {
+		// Space でペイン間のフォーカスを切り替える
+		if event.Rune() == ' ' {
 			if app.GetFocus() == list {
 				app.SetFocus(rightPages)
 			} else {
