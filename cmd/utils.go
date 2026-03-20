@@ -19,6 +19,12 @@ type sheetResult struct {
 	content string
 }
 
+// ディレクトリ比較時の各ファイル（ブック）のデータを保持する構造体
+type bookResult struct {
+	fileName string
+	sheets   []sheetResult
+}
+
 // TUIアプリケーションを構築して表示する共通処理
 func displayTui(results []sheetResult) error {
 	app := tview.NewApplication()
@@ -216,6 +222,100 @@ func displayTui(results []sheetResult) error {
 		AddItem(rightBtn, 3, 0, false)
 
 	return app.SetRoot(layout, true).EnableMouse(true).Run()
+}
+
+// ディレクトリ比較用の2ペインTUIを表示する
+func displayDirTui(books []bookResult) error {
+	app := tview.NewApplication()
+
+	list := tview.NewList().ShowSecondaryText(false)
+	list.SetBorder(true).SetTitle("Files")
+
+	rightPages := tview.NewPages()
+
+	// 各ブックの右ペイン（シートタブ群）を構築
+	for i, book := range books {
+		bookPageID := fmt.Sprintf("book_%d", i)
+		
+		// シート用のPagesとTabBar
+		sheetPages := tview.NewPages()
+		tabBar := tview.NewTextView().
+			SetDynamicColors(true).
+			SetRegions(true).
+			SetWrap(false).
+			SetScrollable(true).
+			SetHighlightedFunc(func(added, removed, remaining []string) {
+				if len(added) > 0 {
+					sheetPages.SwitchToPage(added[0])
+				}
+			})
+		tabBar.SetBackgroundColor(tcell.ColorDefault)
+
+		var tabTitles []string
+		for j, res := range book.sheets {
+			pageID := fmt.Sprintf("sheet_%d_%d", i, j)
+			tabTitles = append(tabTitles, fmt.Sprintf(`["%s"] %s [""]`, pageID, res.title))
+
+			textView := tview.NewTextView().
+				SetDynamicColors(true).
+				SetText(res.content).
+				SetScrollable(true).
+				SetWrap(false)
+			textView.SetBackgroundColor(tcell.ColorDefault)
+
+			sheetPages.AddPage(pageID, textView, true, j == 0)
+		}
+
+		tabBar.SetText(strings.Join(tabTitles, " | "))
+		if len(book.sheets) > 0 {
+			tabBar.Highlight(fmt.Sprintf("sheet_%d_0", i))
+		}
+
+		flex := tview.NewFlex().SetDirection(tview.FlexRow).
+			AddItem(tabBar, 1, 1, false).
+			AddItem(sheetPages, 0, 1, true)
+
+		rightPages.AddPage(bookPageID, flex, true, i == 0)
+
+		// リストにアイテムを追加
+		list.AddItem(book.fileName, "", 0, nil)
+	}
+
+	// リストの選択が変わったときに右ペインを切り替える
+	list.SetChangedFunc(func(index int, mainText string, secondaryText string, shortcut rune) {
+		rightPages.SwitchToPage(fmt.Sprintf("book_%d", index))
+	})
+
+	helpText := " [#f0e442]Up/Down[-]: Select file | [#f0e442]Tab[-]: Switch focus | [#f0e442]q[-]: Quit "
+	helpBar := tview.NewTextView().
+		SetDynamicColors(true).
+		SetText(helpText).
+		SetTextAlign(tview.AlignCenter)
+
+	mainLayout := tview.NewFlex().
+		AddItem(list, 30, 1, true).
+		AddItem(rightPages, 0, 3, false)
+
+	rootLayout := tview.NewFlex().SetDirection(tview.FlexRow).
+		AddItem(mainLayout, 0, 1, true).
+		AddItem(helpBar, 1, 1, false)
+
+	app.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
+		if event.Key() == tcell.KeyTab {
+			if app.GetFocus() == list {
+				app.SetFocus(rightPages)
+			} else {
+				app.SetFocus(list)
+			}
+			return nil
+		} else if event.Key() == tcell.KeyEscape || event.Rune() == 'q' {
+			app.Stop()
+			return nil
+		}
+		return event
+	})
+
+	return app.SetRoot(rootLayout, true).EnableMouse(true).Run()
 }
 
 // 対応するExcelファイルの拡張子かどうかを判定する
