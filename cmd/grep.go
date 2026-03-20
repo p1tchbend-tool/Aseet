@@ -3,9 +3,7 @@ package cmd
 import (
 	"fmt"
 	"os"
-	"path/filepath"
 	"regexp"
-	"strings"
 
 	"github.com/spf13/cobra"
 	"github.com/xuri/excelize/v2"
@@ -49,36 +47,7 @@ var grepCmd = &cobra.Command{
 
 		// パスがディレクトリの場合
 		if info.IsDir() {
-			// 再帰的に検索する場合
-			if grepRecursive {
-				_ = filepath.Walk(path, func(p string, info os.FileInfo, err error) error {
-					if err != nil {
-						// 探索中のエラー（アクセス権限など）は無視して続行する
-						return nil
-					}
-
-					if !info.IsDir() {
-						ext := strings.ToLower(filepath.Ext(p))
-						if isExcelFile(ext) {
-							filesToProcess = append(filesToProcess, p)
-						}
-					}
-					return nil
-				})
-			} else {
-				// ディレクトリ直下のみを検索する場合
-				entries, err := os.ReadDir(path)
-				if err == nil {
-					for _, entry := range entries {
-						if !entry.IsDir() {
-							ext := strings.ToLower(filepath.Ext(entry.Name()))
-							if isExcelFile(ext) {
-								filesToProcess = append(filesToProcess, filepath.Join(path, entry.Name()))
-							}
-						}
-					}
-				}
-			}
+			filesToProcess = findExcelFiles(path, grepRecursive)
 		} else {
 			// パスがファイルの場合
 			filesToProcess = append(filesToProcess, path)
