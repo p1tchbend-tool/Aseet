@@ -48,6 +48,11 @@ var diffCmd = &cobra.Command{
 		}
 
 		if info1.IsDir() && info2.IsDir() {
+			if diffOpen {
+				fmt.Println("Cannot use --open option when comparing directories.")
+				os.Exit(1)
+			}
+
 			// ディレクトリ同士の比較
 			files1 := findExcelFiles(path1, true)
 			files2 := findExcelFiles(path2, true)
