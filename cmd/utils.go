@@ -1,3 +1,4 @@
+// entire file content ...
 package cmd
 
 import (
@@ -232,6 +233,21 @@ func displayDirTui(books []bookResult) error {
 	list.SetBorder(true).SetTitle(" File Differences ")
 	list.SetBackgroundColor(tcell.ColorDefault)
 	list.SetMainTextStyle(tcell.StyleDefault.Background(tcell.ColorDefault))
+
+	// hjklキーでリストをスクロールできるようにする
+	list.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
+		switch event.Rune() {
+		case 'j':
+			return tcell.NewEventKey(tcell.KeyDown, 0, tcell.ModNone)
+		case 'k':
+			return tcell.NewEventKey(tcell.KeyUp, 0, tcell.ModNone)
+		case 'h':
+			return tcell.NewEventKey(tcell.KeyLeft, 0, tcell.ModNone)
+		case 'l':
+			return tcell.NewEventKey(tcell.KeyRight, 0, tcell.ModNone)
+		}
+		return event
+	})
 
 	rightPages := tview.NewPages()
 
@@ -546,3 +562,4 @@ func findExcelFiles(dirPath string, recursive bool) []string {
 
 	return files
 }
+// ... goes in between
