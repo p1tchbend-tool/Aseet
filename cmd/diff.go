@@ -124,7 +124,9 @@ var diffCmd = &cobra.Command{
 				fmt.Printf("Error running TUI: %v\n", err)
 				os.Exit(1)
 			}
+
 		} else {
+			// ディレクトリとファイルの比較
 			fmt.Println("Cannot compare a file with a directory.")
 			os.Exit(1)
 		}
