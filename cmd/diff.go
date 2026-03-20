@@ -378,5 +378,5 @@ func init() {
 	rootCmd.AddCommand(diffCmd)
 	diffCmd.Flags().BoolVarP(&diffFormula, "formula", "f", false, "If the cell value is a formula, compare the formula instead of the value.")
 	diffCmd.Flags().StringVarP(&diffSheetName, "name", "n", "", "Compare only the specified sheet.")
-	diffCmd.Flags().BoolVarP(&diffOpen, "open", "o", false, "Copy the two files to the cache directory with [LOCAL] and [REMOTE] prefixes and open them.")
+	diffCmd.Flags().BoolVarP(&diffOpen, "open", "o", false, "Copy the two files to the cache directory with [OLD] and [NEW] prefixes and open them.")
 }
