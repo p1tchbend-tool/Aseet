@@ -22,7 +22,7 @@ Aseetは以下のフォーマットに対応しています。
 
 ## セットアップ
 
-[aseet.exeをダウンロード](https://github.com/p1tchbend-tool/Aseet/releases) して、任意のディレクトリに配置します。  
+[aseet.exeをダウンロード](https://github.com/p1tchbend-tool/Aseet/releases/latest) して、任意のディレクトリに配置します。  
 配置したexeにパスを通します。
 
 ## アンインストール
