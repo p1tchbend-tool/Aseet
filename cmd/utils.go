@@ -265,6 +265,7 @@ func displayDirTui(books []bookResult) error {
 	list.SetBorder(true).SetTitle(" File Differences ")
 	list.SetBackgroundColor(tcell.ColorDefault)
 	list.SetMainTextStyle(tcell.StyleDefault.Background(tcell.ColorDefault))
+	list.SetSelectedStyle(tcell.StyleDefault.Reverse(true))
 
 	// hjklキーでリストをスクロールできるようにする（Vimライクな操作）
 	list.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
