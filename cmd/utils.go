@@ -15,8 +15,10 @@ import (
 
 // TUIで表示する各タブ（シート）のデータを保持する構造体
 type sheetResult struct {
-	title   string // タブに表示されるタイトル（シート名など）
-	content string // タブ内に表示されるコンテンツ（CSV形式の文字列など）
+	title   string     // タブに表示されるタイトル（シート名など）
+	content string     // タブ内に表示されるテキストコンテンツ（Summaryなど）
+	cells   [][]string // テーブル表示用の2次元配列データ
+	isTable bool       // trueの場合はTableとして、falseの場合はTextViewとして表示する
 }
 
 // ディレクトリ比較時の各ファイル（ブック）のデータを保持する構造体
@@ -69,21 +71,76 @@ func createSheetTabs(app *tview.Application, results []sheetResult) tview.Primit
 		// tviewのRegion機能を使ってタブのタイトルをフォーマット
 		tabTitles = append(tabTitles, fmt.Sprintf(`["%s"] %s [""]`, pageID, res.title))
 
-		// シートの内容を表示するテキストビューを作成
-		textView := tview.NewTextView().
-			SetDynamicColors(true).
-			SetText(res.content).
-			SetScrollable(true).
-			SetWrap(false)
-		textView.SetBackgroundColor(tcell.ColorDefault)
+		var page tview.Primitive
 
-		// テキストビューにフォーカスが当たった際の処理
-		textView.SetFocusFunc(func() {
-			lastFocus = pages
-		})
+		if res.isTable {
+			// テーブルビューを作成
+			table := tview.NewTable().
+				SetBorders(true).
+				SetBordersColor(tcell.ColorDarkGray)
+			table.SetBackgroundColor(tcell.ColorDefault)
+
+			// 最大列数を計算
+			maxCols := 0
+			for _, row := range res.cells {
+				if len(row) > maxCols {
+					maxCols = len(row)
+				}
+			}
+
+			// 左上の空白セル
+			table.SetCell(0, 0, tview.NewTableCell("").SetSelectable(false))
+
+			// 列ヘッダー (A, B, C...) を追加
+			for c := 0; c < maxCols; c++ {
+				colName, _ := excelize.ColumnNumberToName(c + 1)
+				table.SetCell(0, c+1, tview.NewTableCell(colName).
+					SetSelectable(false).
+					SetAlign(tview.AlignCenter).
+					SetTextColor(tcell.ColorYellow))
+			}
+
+			// 行データと行ヘッダー (1, 2, 3...) を追加
+			for r, row := range res.cells {
+				table.SetCell(r+1, 0, tview.NewTableCell(fmt.Sprintf("%d", r+1)).
+					SetSelectable(false).
+					SetAlign(tview.AlignRight).
+					SetTextColor(tcell.ColorYellow))
+
+				for c := 0; c < maxCols; c++ {
+					val := ""
+					if c < len(row) {
+						val = row[c]
+					}
+					// 改行が含まれる場合は表示崩れを防ぐためエスケープ
+					val = strings.ReplaceAll(val, "\n", "\\n")
+					table.SetCell(r+1, c+1, tview.NewTableCell(val).SetSelectable(true))
+				}
+			}
+
+			// テーブルにフォーカスが当たった際の処理
+			table.SetFocusFunc(func() {
+				lastFocus = pages
+			})
+			page = table
+		} else {
+			// テキストビューを作成（Summaryなど用）
+			textView := tview.NewTextView().
+				SetDynamicColors(true).
+				SetText(res.content).
+				SetScrollable(true).
+				SetWrap(false)
+			textView.SetBackgroundColor(tcell.ColorDefault)
+
+			// テキストビューにフォーカスが当たった際の処理
+			textView.SetFocusFunc(func() {
+				lastFocus = pages
+			})
+			page = textView
+		}
 
 		// 最初のページのみ表示状態にする
-		pages.AddPage(pageID, textView, true, i == 0)
+		pages.AddPage(pageID, page, true, i == 0)
 	}
 
 	// タブバーにタイトル一覧を設定
@@ -141,7 +198,7 @@ func createSheetTabs(app *tview.Application, results []sheetResult) tview.Primit
 			tabBar.ScrollTo(row, col+100)
 			return nil
 		} else if event.Rune() == 'H' {
-			// 'H'キーでテキストビューを大きく左にスクロール
+			// 'H'キーでコンテンツを大きく左にスクロール
 			_, frontPage := pages.GetFrontPage()
 			if tv, ok := frontPage.(*tview.TextView); ok {
 				row, col := tv.GetScrollOffset()
@@ -150,18 +207,28 @@ func createSheetTabs(app *tview.Application, results []sheetResult) tview.Primit
 					newCol = 0
 				}
 				tv.ScrollTo(row, newCol)
+			} else if tb, ok := frontPage.(*tview.Table); ok {
+				row, col := tb.GetOffset()
+				newCol := col - 10
+				if newCol < 0 {
+					newCol = 0
+				}
+				tb.SetOffset(row, newCol)
 			}
 			return nil
 		} else if event.Rune() == 'J' {
-			// 'J'キーでテキストビューを下にスクロール
+			// 'J'キーでコンテンツを下にスクロール
 			_, frontPage := pages.GetFrontPage()
 			if tv, ok := frontPage.(*tview.TextView); ok {
 				row, col := tv.GetScrollOffset()
 				tv.ScrollTo(row+10, col)
+			} else if tb, ok := frontPage.(*tview.Table); ok {
+				row, col := tb.GetOffset()
+				tb.SetOffset(row+10, col)
 			}
 			return nil
 		} else if event.Rune() == 'K' {
-			// 'K'キーでテキストビューを上にスクロール
+			// 'K'キーでコンテンツを上にスクロール
 			_, frontPage := pages.GetFrontPage()
 			if tv, ok := frontPage.(*tview.TextView); ok {
 				row, col := tv.GetScrollOffset()
@@ -170,14 +237,24 @@ func createSheetTabs(app *tview.Application, results []sheetResult) tview.Primit
 					newRow = 0
 				}
 				tv.ScrollTo(newRow, col)
+			} else if tb, ok := frontPage.(*tview.Table); ok {
+				row, col := tb.GetOffset()
+				newRow := row - 10
+				if newRow < 0 {
+					newRow = 0
+				}
+				tb.SetOffset(newRow, col)
 			}
 			return nil
 		} else if event.Rune() == 'L' {
-			// 'L'キーでテキストビューを大きく右にスクロール
+			// 'L'キーでコンテンツを大きく右にスクロール
 			_, frontPage := pages.GetFrontPage()
 			if tv, ok := frontPage.(*tview.TextView); ok {
 				row, col := tv.GetScrollOffset()
 				tv.ScrollTo(row, col+100)
+			} else if tb, ok := frontPage.(*tview.Table); ok {
+				row, col := tb.GetOffset()
+				tb.SetOffset(row, col+10)
 			}
 			return nil
 		}

@@ -92,10 +92,10 @@ var diffCmd = &cobra.Command{
 					results = compareExcelFiles(f1, f2)
 					title = colorChange + rel + colorReset
 				} else if ok1 {
-					results = []sheetResult{{title: "Summary", content: fmt.Sprintf("\n%s only exists in %s", rel, path1)}}
+					results = []sheetResult{{title: "Summary", content: fmt.Sprintf("\n%s only exists in %s", rel, path1), isTable: false}}
 					title = colorDel + "-" + rel + colorReset
 				} else if ok2 {
-					results = []sheetResult{{title: "Summary", content: fmt.Sprintf("\n%s only exists in %s", rel, path2)}}
+					results = []sheetResult{{title: "Summary", content: fmt.Sprintf("\n%s only exists in %s", rel, path2), isTable: false}}
 					title = colorAdd + "+" + rel + colorReset
 				}
 
@@ -173,13 +173,13 @@ func handleDiffOpen(file1, file2 string) {
 func compareExcelFiles(file1, file2 string) []sheetResult {
 	f1, err := excelize.OpenFile(file1)
 	if err != nil {
-		return []sheetResult{{title: "Summary", content: fmt.Sprintf("\nError opening file %s", file1)}}
+		return []sheetResult{{title: "Summary", content: fmt.Sprintf("\nError opening file %s", file1), isTable: false}}
 	}
 	defer f1.Close()
 
 	f2, err := excelize.OpenFile(file2)
 	if err != nil {
-		return []sheetResult{{title: "Summary", content: fmt.Sprintf("\nError opening file %s", file2)}}
+		return []sheetResult{{title: "Summary", content: fmt.Sprintf("\nError opening file %s", file2), isTable: false}}
 	}
 	defer f2.Close()
 
@@ -236,7 +236,7 @@ func compareExcelFiles(file1, file2 string) []sheetResult {
 
 	if diffSheetName != "" {
 		if !sheetMap1[diffSheetName] && !sheetMap2[diffSheetName] {
-			return []sheetResult{{title: "Summary", content: fmt.Sprintf("\nSheet %s does not exist in either file.", diffSheetName)}}
+			return []sheetResult{{title: "Summary", content: fmt.Sprintf("\nSheet %s does not exist in either file.", diffSheetName), isTable: false}}
 		}
 		allSheets = []string{diffSheetName}
 	} else {
@@ -270,7 +270,7 @@ func compareExcelFiles(file1, file2 string) []sheetResult {
 			colAlign := align(transpose(rows1), transpose(rows2))
 
 			hasSheetDiff := false
-			var sheetOutput []string
+			var sheetOutput [][]string
 			var changedCells []string
 
 			for _, rPair := range rowAlign {
@@ -289,7 +289,7 @@ func compareExcelFiles(file1, file2 string) []sheetResult {
 					}
 
 					if val1 == val2 {
-						diffCells = append(diffCells, escapeCSVField(val1))
+						diffCells = append(diffCells, val1)
 					} else {
 						hasSheetDiff = true
 
@@ -310,16 +310,16 @@ func compareExcelFiles(file1, file2 string) []sheetResult {
 
 						var cellDiff string
 						if val1 != "" && val2 != "" {
-							cellDiff = fmt.Sprintf("%s-%s%s %s+%s%s", colorDel, escapeCSVField(val1), colorReset, colorAdd, escapeCSVField(val2), colorReset)
+							cellDiff = fmt.Sprintf("%s-%s%s %s+%s%s", colorDel, val1, colorReset, colorAdd, val2, colorReset)
 						} else if val1 != "" {
-							cellDiff = fmt.Sprintf("%s-%s%s", colorDel, escapeCSVField(val1), colorReset)
+							cellDiff = fmt.Sprintf("%s-%s%s", colorDel, val1, colorReset)
 						} else if val2 != "" {
-							cellDiff = fmt.Sprintf("%s+%s%s", colorAdd, escapeCSVField(val2), colorReset)
+							cellDiff = fmt.Sprintf("%s+%s%s", colorAdd, val2, colorReset)
 						}
 						diffCells = append(diffCells, cellDiff)
 					}
 				}
-				sheetOutput = append(sheetOutput, strings.Join(diffCells, ","))
+				sheetOutput = append(sheetOutput, diffCells)
 			}
 
 			if hasSheetDiff {
@@ -329,20 +329,23 @@ func compareExcelFiles(file1, file2 string) []sheetResult {
 				})
 				results = append(results, sheetResult{
 					title:   colorChange + sheet + colorReset,
-					content: strings.Join(sheetOutput, "\n"),
+					cells:   sheetOutput,
+					isTable: true,
 				})
 			}
 		} else if in1 {
-			content, _ := getSheetContents(f1, sheet, diffFormula)
+			data, _ := getSheetData(f1, sheet, diffFormula)
 			results = append(results, sheetResult{
 				title:   fmt.Sprintf("%s%s : %s%s", colorDel, filepath.Base(file1), sheet, colorReset),
-				content: content,
+				cells:   data,
+				isTable: true,
 			})
 		} else if in2 {
-			content, _ := getSheetContents(f2, sheet, diffFormula)
+			data, _ := getSheetData(f2, sheet, diffFormula)
 			results = append(results, sheetResult{
 				title:   fmt.Sprintf("%s%s : %s%s", colorAdd, filepath.Base(file2), sheet, colorReset),
-				content: content,
+				cells:   data,
+				isTable: true,
 			})
 		}
 	}
@@ -368,6 +371,7 @@ func compareExcelFiles(file1, file2 string) []sheetResult {
 		results = append([]sheetResult{{
 			title:   "Summary",
 			content: summaryText,
+			isTable: false,
 		}}, results...)
 	}
 

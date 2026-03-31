@@ -43,14 +43,15 @@ var catCmd = &cobra.Command{
 
 			// 全シートの内容を取得してスライスに保存する
 			for _, sheet := range f.GetSheetList() {
-				content, err := getSheetContents(f, sheet, catFormula)
+				data, err := getSheetData(f, sheet, catFormula)
 				if err != nil {
 					fmt.Printf("Error reading sheet %s\n", sheet)
 					continue
 				}
 				results = append(results, sheetResult{
 					title:   sheet,
-					content: content,
+					cells:   data,
+					isTable: true,
 				})
 			}
 
