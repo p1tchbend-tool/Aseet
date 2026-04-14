@@ -73,7 +73,7 @@ func createSheetTabs(app *tview.Application, results []sheetResult) tview.Primit
 			// テーブルビューを作成
 			table := tview.NewTable().
 				SetBorders(true).
-				SetBordersColor(tcell.ColorDarkGray).
+				SetBordersColor(tcell.GetColor("#e5e5e5")).
 				SetFixed(1, 1) // ヘッダー行とヘッダー列を固定
 			table.SetBackgroundColor(tcell.ColorDefault)
 
