@@ -35,7 +35,7 @@ var catCmd = &cobra.Command{
 				fmt.Printf("Error reading sheet %s\n", sheetName)
 				os.Exit(1)
 			}
-			
+
 			results := []sheetResult{
 				{
 					title:   sheetName,
@@ -66,12 +66,6 @@ var catCmd = &cobra.Command{
 					cells:   data,
 					isTable: true,
 				})
-			}
-
-			// シートが見つからなかった場合の処理
-			if len(results) == 0 {
-				fmt.Println("No sheets found.")
-				return
 			}
 
 			// TUIアプリケーションを実行する
