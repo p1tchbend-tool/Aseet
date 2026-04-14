@@ -16,22 +16,6 @@ func isExcelFile(ext string) bool {
 	return ext == ".xlsx" || ext == ".xlsm" || ext == ".xlam" || ext == ".xltm" || ext == ".xltx"
 }
 
-// セルの値にカンマ、改行、ダブルクォーテーションが含まれる場合はCSV形式としてエスケープ処理を行う
-func escapeCSVField(value string) string {
-	needsQuotes := strings.Contains(value, "\"") || strings.Contains(value, "\n") || strings.Contains(value, ",")
-
-	// 1. ダブルクォーテーションを2つにする（エスケープ）
-	value = strings.ReplaceAll(value, "\"", "\"\"")
-	// 2. 改行コードが含まれる場合、文字としての "\n" に変換する（表示崩れを防ぐため）
-	value = strings.ReplaceAll(value, "\n", "\\n")
-
-	// 3. ダブルクォーテーション・改行・カンマのいずれかが含まれていた場合は、フィールド全体をダブルクォーテーションで囲む
-	if needsQuotes {
-		return fmt.Sprintf("\"%s\"", value)
-	}
-	return value
-}
-
 // シートのデータを2次元配列として取得する。isFormulaがtrueの場合は値ではなく数式を取得する
 func getSheetData(f *excelize.File, sheetName string, isFormula bool) ([][]string, error) {
 	// シートの全行を取得
