@@ -84,6 +84,8 @@ func createSheetTabs(app *tview.Application, results []sheetResult) tview.Primit
 					maxCols = len(row)
 				}
 			}
+			// 常に1つ余分な列を追加
+			maxCols++
 
 			// 左上の空白セル
 			table.SetCell(0, 0, tview.NewTableCell("").SetSelectable(false))
@@ -98,11 +100,18 @@ func createSheetTabs(app *tview.Application, results []sheetResult) tview.Primit
 			}
 
 			// 行データと行ヘッダー (1, 2, 3...) を追加
-			for r, row := range res.cells {
+			// 常に1つ余分な行を追加
+			rowCount := len(res.cells) + 1
+			for r := 0; r < rowCount; r++ {
 				table.SetCell(r+1, 0, tview.NewTableCell(fmt.Sprintf("%d", r+1)).
 					SetSelectable(false).
 					SetAlign(tview.AlignRight).
 					SetTextColor(tcell.ColorYellow))
+
+				var row []string
+				if r < len(res.cells) {
+					row = res.cells[r]
+				}
 
 				for c := 0; c < maxCols; c++ {
 					val := ""
