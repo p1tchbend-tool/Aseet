@@ -96,7 +96,7 @@ func createSheetTabs(app *tview.Application, results []sheetResult) tview.Primit
 				table.SetCell(0, c+1, tview.NewTableCell(colName).
 					SetSelectable(false).
 					SetAlign(tview.AlignCenter).
-					SetTextColor(tcell.ColorYellow))
+					SetTextColor(tcell.GetColor("#f0e442")))
 			}
 
 			// 行データと行ヘッダー (1, 2, 3...) を追加
@@ -106,7 +106,7 @@ func createSheetTabs(app *tview.Application, results []sheetResult) tview.Primit
 				table.SetCell(r+1, 0, tview.NewTableCell(fmt.Sprintf("%d", r+1)).
 					SetSelectable(false).
 					SetAlign(tview.AlignRight).
-					SetTextColor(tcell.ColorYellow))
+					SetTextColor(tcell.GetColor("#f0e442")))
 
 				var row []string
 				if r < len(res.cells) {
