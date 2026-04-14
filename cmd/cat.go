@@ -30,12 +30,25 @@ var catCmd = &cobra.Command{
 
 		// 特定のシート名が指定された場合の処理
 		if sheetName != "" {
-			content, err := getSheetContents(f, sheetName, catFormula)
+			data, err := getSheetData(f, sheetName, catFormula)
 			if err != nil {
 				fmt.Printf("Error reading sheet %s\n", sheetName)
 				os.Exit(1)
 			}
-			fmt.Print(content)
+			
+			results := []sheetResult{
+				{
+					title:   sheetName,
+					cells:   data,
+					isTable: true,
+				},
+			}
+
+			// TUIアプリケーションを実行する
+			if err := displayFileTui(results); err != nil {
+				fmt.Printf("Error running TUI: %v\n", err)
+				os.Exit(1)
+			}
 
 		} else if all {
 			// --allオプションが指定された場合、全シートをTUIで表示する
