@@ -81,29 +81,6 @@ func TestGetSheetData_TestData(t *testing.T) {
 	})
 }
 
-func TestGetSheetContents_TestData(t *testing.T) {
-	f, err := excelize.OpenFile("testdata/testbook1.xlsx")
-	if err != nil {
-		t.Fatalf("failed to open test file: %v", err)
-	}
-	defer f.Close()
-
-	sheetName := "Sheet1"
-
-	t.Run("Without Formula", func(t *testing.T) {
-		got, err := getSheetContents(f, sheetName, false)
-		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
-		}
-
-		expected := "Hello,World\n"
-
-		if got != expected {
-			t.Errorf("getSheetContents() = %q, want %q", got, expected)
-		}
-	})
-}
-
 func TestCountNonEmpty(t *testing.T) {
 	tests := []struct {
 		name     string

@@ -69,41 +69,6 @@ func getSheetData(f *excelize.File, sheetName string, isFormula bool) ([][]strin
 	return result, nil
 }
 
-// シートの内容をCSV形式の文字列として取得する
-func getSheetContents(f *excelize.File, sheetName string, isFormula bool) (string, error) {
-	// シートのデータを2次元配列で取得
-	rows, err := getSheetData(f, sheetName, isFormula)
-	if err != nil {
-		return "", err
-	}
-
-	// シート内の最大列数を計算（行によって列数が異なる場合があるため）
-	maxCols := 0
-	for _, row := range rows {
-		if len(row) > maxCols {
-			maxCols = len(row)
-		}
-	}
-
-	var sb strings.Builder
-	// 各行をループ処理してCSV文字列を構築
-	for _, row := range rows {
-		var outputCells []string
-		// 最大列数に合わせて各セルをループ処理（足りない列は空文字で埋める）
-		for c := 0; c < maxCols; c++ {
-			var value string
-			if c < len(row) {
-				value = row[c]
-			}
-			// セルの値をエスケープ処理して追加
-			outputCells = append(outputCells, escapeCSVField(value))
-		}
-		// セルの値をカンマ区切りで結合し、改行を追加
-		sb.WriteString(strings.Join(outputCells, ",") + "\n")
-	}
-	return sb.String(), nil
-}
-
 // ファイルをコピーする（一時ファイルの作成などに使用）
 func copyFile(src, dst string) error {
 	input, err := os.ReadFile(src)
