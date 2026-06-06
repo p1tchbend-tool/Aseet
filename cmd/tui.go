@@ -268,13 +268,15 @@ func createSheetTabs(app *tview.Application, results []sheetResult) tview.Primit
 			_, frontPage := pages.GetFrontPage()
 			if tb, ok := frontPage.(*tview.Table); ok {
 				row, col := tb.GetOffset()
+				searchR := row + 1
+				searchC := col + 1
 				rowCount := tb.GetRowCount()
 				colCount := tb.GetColumnCount()
 				found := false
-				for r := row; r < rowCount; r++ {
+				for r := searchR; r < rowCount; r++ {
 					startCol := 1
-					if r == row {
-						startCol = col + 1
+					if r == searchR {
+						startCol = searchC + 1
 					}
 					for c := startCol; c < colCount; c++ {
 						cell := tb.GetCell(r, c)
@@ -300,7 +302,8 @@ func createSheetTabs(app *tview.Application, results []sheetResult) tview.Primit
 				text := tv.GetText(false)
 				lines := strings.Split(text, "\n")
 				row, _ := tv.GetScrollOffset()
-				for r := row + 1; r < len(lines); r++ {
+				searchR := row + 1
+				for r := searchR + 1; r < len(lines); r++ {
 					if strings.Contains(lines[r], "[#d55e00]") || strings.Contains(lines[r], "[#56b4e9]") || strings.Contains(lines[r], "[#f0e442]") {
 						targetR := r - 1
 						if targetR < 0 {
@@ -317,12 +320,14 @@ func createSheetTabs(app *tview.Application, results []sheetResult) tview.Primit
 			_, frontPage := pages.GetFrontPage()
 			if tb, ok := frontPage.(*tview.Table); ok {
 				row, col := tb.GetOffset()
+				searchR := row + 1
+				searchC := col + 1
 				colCount := tb.GetColumnCount()
 				found := false
-				for r := row; r >= 0; r-- {
+				for r := searchR; r >= 0; r-- {
 					startCol := colCount - 1
-					if r == row {
-						startCol = col - 1
+					if r == searchR {
+						startCol = searchC - 1
 					}
 					for c := startCol; c >= 1; c-- {
 						cell := tb.GetCell(r, c)
@@ -348,7 +353,8 @@ func createSheetTabs(app *tview.Application, results []sheetResult) tview.Primit
 				text := tv.GetText(false)
 				lines := strings.Split(text, "\n")
 				row, _ := tv.GetScrollOffset()
-				for r := row - 1; r >= 0; r-- {
+				searchR := row + 1
+				for r := searchR - 1; r >= 0; r-- {
 					if strings.Contains(lines[r], "[#d55e00]") || strings.Contains(lines[r], "[#56b4e9]") || strings.Contains(lines[r], "[#f0e442]") {
 						targetR := r - 1
 						if targetR < 0 {
