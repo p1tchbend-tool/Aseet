@@ -263,6 +263,79 @@ func createSheetTabs(app *tview.Application, results []sheetResult) tview.Primit
 				tb.SetOffset(row, col+10)
 			}
 			return nil
+		} else if event.Rune() == 'n' {
+			// 'n'キーで次の差分へスクロール
+			_, frontPage := pages.GetFrontPage()
+			if tb, ok := frontPage.(*tview.Table); ok {
+				row, col := tb.GetOffset()
+				rowCount := tb.GetRowCount()
+				colCount := tb.GetColumnCount()
+				found := false
+				for r := row; r < rowCount; r++ {
+					startCol := 1
+					if r == row {
+						startCol = col + 1
+					}
+					for c := startCol; c < colCount; c++ {
+						cell := tb.GetCell(r, c)
+						if cell != nil && (strings.Contains(cell.Text, "[#d55e00]") || strings.Contains(cell.Text, "[#56b4e9]") || strings.Contains(cell.Text, "[#f0e442]")) {
+							tb.SetOffset(r, c)
+							found = true
+							break
+						}
+					}
+					if found {
+						break
+					}
+				}
+			} else if tv, ok := frontPage.(*tview.TextView); ok {
+				text := tv.GetText(false)
+				lines := strings.Split(text, "\n")
+				row, _ := tv.GetScrollOffset()
+				for r := row + 1; r < len(lines); r++ {
+					if strings.Contains(lines[r], "[#d55e00]") || strings.Contains(lines[r], "[#56b4e9]") || strings.Contains(lines[r], "[#f0e442]") {
+						tv.ScrollTo(r, 0)
+						break
+					}
+				}
+			}
+			return nil
+		} else if event.Rune() == 'N' {
+			// 'N'キーで前の差分へスクロール
+			_, frontPage := pages.GetFrontPage()
+			if tb, ok := frontPage.(*tview.Table); ok {
+				row, col := tb.GetOffset()
+				colCount := tb.GetColumnCount()
+				found := false
+				for r := row; r >= 0; r-- {
+					startCol := colCount - 1
+					if r == row {
+						startCol = col - 1
+					}
+					for c := startCol; c >= 1; c-- {
+						cell := tb.GetCell(r, c)
+						if cell != nil && (strings.Contains(cell.Text, "[#d55e00]") || strings.Contains(cell.Text, "[#56b4e9]") || strings.Contains(cell.Text, "[#f0e442]")) {
+							tb.SetOffset(r, c)
+							found = true
+							break
+						}
+					}
+					if found {
+						break
+					}
+				}
+			} else if tv, ok := frontPage.(*tview.TextView); ok {
+				text := tv.GetText(false)
+				lines := strings.Split(text, "\n")
+				row, _ := tv.GetScrollOffset()
+				for r := row - 1; r >= 0; r-- {
+					if strings.Contains(lines[r], "[#d55e00]") || strings.Contains(lines[r], "[#56b4e9]") || strings.Contains(lines[r], "[#f0e442]") {
+						tv.ScrollTo(r, 0)
+						break
+					}
+				}
+			}
+			return nil
 		}
 		return event
 	})
@@ -306,7 +379,7 @@ func displayFileTui(results []sheetResult) error {
 	layout := createSheetTabs(app, results)
 
 	// ヘルプテキスト（操作説明）の作成
-	helpText1 := " [#f0e442]Tab[-]: Switch tab | [#f0e442]b / f[-]: Scroll tab | [#f0e442]h / j / k / l[-]: Scroll text | [#f0e442]g[-]: Scroll text to edge | [#f0e442]q[-]: Quit "
+	helpText1 := " [#f0e442]Tab[-]: Switch tab | [#f0e442]b / f[-]: Scroll tab | [#f0e442]h / j / k / l[-]: Scroll text | [#f0e442]n / N[-]: Next / Prev diff | [#f0e442]q[-]: Quit "
 	helpBar1 := tview.NewTextView().
 		SetDynamicColors(true).
 		SetText(helpText1).
@@ -385,7 +458,7 @@ func displayDirTui(books []bookResult) error {
 	})
 
 	// ヘルプテキスト（操作説明）の作成
-	helpText1 := " [#f0e442]Space[-]: Switch pain | [#f0e442]Tab[-]: Switch file / sheet | [#f0e442]b / f[-]: Scroll tab | [#f0e442]h / j / k / l[-]: Scroll text | [#f0e442]g[-]: Scroll text to edge | [#f0e442]q[-]: Quit "
+	helpText1 := " [#f0e442]Space[-]: Switch pain | [#f0e442]Tab[-]: Switch file / sheet | [#f0e442]h / j / k / l[-]: Scroll text | [#f0e442]n / N[-]: Next / Prev diff | [#f0e442]q[-]: Quit "
 	helpBar1 := tview.NewTextView().
 		SetDynamicColors(true).
 		SetText(helpText1).
