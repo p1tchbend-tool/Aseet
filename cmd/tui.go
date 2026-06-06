@@ -379,7 +379,7 @@ func displayFileTui(results []sheetResult) error {
 	layout := createSheetTabs(app, results)
 
 	// ヘルプテキスト（操作説明）の作成
-	helpText1 := " [#f0e442]Tab[-]: Switch tab | [#f0e442]b / f[-]: Scroll tab | [#f0e442]h / j / k / l[-]: Scroll text | [#f0e442]n / N[-]: Next / Prev diff | [#f0e442]q[-]: Quit "
+	helpText1 := " [#f0e442]Tab[-]: Switch tab | [#f0e442]b / f[-]: Scroll tab | [#f0e442]h / j / k / l[-]: Scroll text | [#f0e442]n[-]: Next diff | [#f0e442]g[-]: Go to edge | [#f0e442]q[-]: Quit "
 	helpBar1 := tview.NewTextView().
 		SetDynamicColors(true).
 		SetText(helpText1).
@@ -458,7 +458,7 @@ func displayDirTui(books []bookResult) error {
 	})
 
 	// ヘルプテキスト（操作説明）の作成
-	helpText1 := " [#f0e442]Space[-]: Switch pain | [#f0e442]Tab[-]: Switch file / sheet | [#f0e442]h / j / k / l[-]: Scroll text | [#f0e442]n / N[-]: Next / Prev diff | [#f0e442]q[-]: Quit "
+	helpText1 := " [#f0e442]Space[-]: Switch pain | [#f0e442]Tab[-]: Switch file / sheet | [#f0e442]b / f[-]: Scroll tab | [#f0e442]h / j / k / l[-]: Scroll text | [#f0e442]n[-]: Next diff | [#f0e442]g[-]: Go to edge | [#f0e442]q[-]: Quit "
 	helpBar1 := tview.NewTextView().
 		SetDynamicColors(true).
 		SetText(helpText1).
