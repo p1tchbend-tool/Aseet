@@ -279,7 +279,15 @@ func createSheetTabs(app *tview.Application, results []sheetResult) tview.Primit
 					for c := startCol; c < colCount; c++ {
 						cell := tb.GetCell(r, c)
 						if cell != nil && (strings.Contains(cell.Text, "[#d55e00]") || strings.Contains(cell.Text, "[#56b4e9]") || strings.Contains(cell.Text, "[#f0e442]")) {
-							tb.SetOffset(r, c)
+							targetR := r - 1
+							if targetR < 0 {
+								targetR = 0
+							}
+							targetC := c - 1
+							if targetC < 0 {
+								targetC = 0
+							}
+							tb.SetOffset(targetR, targetC)
 							found = true
 							break
 						}
@@ -294,7 +302,11 @@ func createSheetTabs(app *tview.Application, results []sheetResult) tview.Primit
 				row, _ := tv.GetScrollOffset()
 				for r := row + 1; r < len(lines); r++ {
 					if strings.Contains(lines[r], "[#d55e00]") || strings.Contains(lines[r], "[#56b4e9]") || strings.Contains(lines[r], "[#f0e442]") {
-						tv.ScrollTo(r, 0)
+						targetR := r - 1
+						if targetR < 0 {
+							targetR = 0
+						}
+						tv.ScrollTo(targetR, 0)
 						break
 					}
 				}
@@ -315,7 +327,15 @@ func createSheetTabs(app *tview.Application, results []sheetResult) tview.Primit
 					for c := startCol; c >= 1; c-- {
 						cell := tb.GetCell(r, c)
 						if cell != nil && (strings.Contains(cell.Text, "[#d55e00]") || strings.Contains(cell.Text, "[#56b4e9]") || strings.Contains(cell.Text, "[#f0e442]")) {
-							tb.SetOffset(r, c)
+							targetR := r - 1
+							if targetR < 0 {
+								targetR = 0
+							}
+							targetC := c - 1
+							if targetC < 0 {
+								targetC = 0
+							}
+							tb.SetOffset(targetR, targetC)
 							found = true
 							break
 						}
@@ -330,7 +350,11 @@ func createSheetTabs(app *tview.Application, results []sheetResult) tview.Primit
 				row, _ := tv.GetScrollOffset()
 				for r := row - 1; r >= 0; r-- {
 					if strings.Contains(lines[r], "[#d55e00]") || strings.Contains(lines[r], "[#56b4e9]") || strings.Contains(lines[r], "[#f0e442]") {
-						tv.ScrollTo(r, 0)
+						targetR := r - 1
+						if targetR < 0 {
+							targetR = 0
+						}
+						tv.ScrollTo(targetR, 0)
 						break
 					}
 				}
