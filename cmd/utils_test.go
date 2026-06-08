@@ -37,7 +37,7 @@ func TestIsExcelFile(t *testing.T) {
 func TestGetSheetData_TestData(t *testing.T) {
 	// 一時ディレクトリを作成
 	tempDir := t.TempDir()
-	filePath := filepath.Join(tempDir, "testbook1.xlsx")
+	filePath := filepath.Join(tempDir, "testbook.xlsx")
 
 	// 動的にExcelファイルを作成
 	fNew := excelize.NewFile()
@@ -46,7 +46,7 @@ func TestGetSheetData_TestData(t *testing.T) {
 	sheetName := "Sheet1"
 	// デフォルトのシート名が "Sheet1" でない場合を考慮して作成/取得
 	fNew.NewSheet(sheetName)
-	
+
 	// テスト用データの書き込み (A1: "Hello", B1: "World")
 	_ = fNew.SetCellValue(sheetName, "A1", "Hello")
 	_ = fNew.SetCellValue(sheetName, "B1", "World")
