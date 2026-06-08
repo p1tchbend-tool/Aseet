@@ -35,13 +35,33 @@ func TestIsExcelFile(t *testing.T) {
 }
 
 func TestGetSheetData_TestData(t *testing.T) {
-	f, err := excelize.OpenFile("testdata/testbook1.xlsx")
+	// 一時ディレクトリを作成
+	tempDir := t.TempDir()
+	filePath := filepath.Join(tempDir, "testbook1.xlsx")
+
+	// 動的にExcelファイルを作成
+	fNew := excelize.NewFile()
+	defer fNew.Close()
+
+	sheetName := "Sheet1"
+	// デフォルトのシート名が "Sheet1" でない場合を考慮して作成/取得
+	fNew.NewSheet(sheetName)
+	
+	// テスト用データの書き込み (A1: "Hello", B1: "World")
+	_ = fNew.SetCellValue(sheetName, "A1", "Hello")
+	_ = fNew.SetCellValue(sheetName, "B1", "World")
+
+	// ファイルに保存
+	if err := fNew.SaveAs(filePath); err != nil {
+		t.Fatalf("failed to create temporary excel file: %v", err)
+	}
+
+	// 作成したファイルを読み込んでテストを実行
+	f, err := excelize.OpenFile(filePath)
 	if err != nil {
 		t.Fatalf("failed to open test file: %v", err)
 	}
 	defer f.Close()
-
-	sheetName := "Sheet1"
 
 	t.Run("Without Formula", func(t *testing.T) {
 		got, err := getSheetData(f, sheetName, false)
