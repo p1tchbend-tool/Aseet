@@ -7,6 +7,8 @@ import (
 	"sort"
 	"strings"
 
+	"aseet/internal"
+
 	"github.com/pmezard/go-difflib/difflib"
 	"github.com/spf13/cobra"
 	"github.com/xuri/excelize/v2"
@@ -54,8 +56,8 @@ var diffCmd = &cobra.Command{
 			}
 
 			// ディレクトリ同士の比較
-			files1 := findExcelFiles(path1, true)
-			files2 := findExcelFiles(path2, true)
+			files1 := internal.FindExcelFiles(path1, true)
+			files2 := internal.FindExcelFiles(path2, true)
 
 			fileMap1 := make(map[string]string)
 			fileMap2 := make(map[string]string)
@@ -81,28 +83,28 @@ var diffCmd = &cobra.Command{
 
 			sort.Strings(allRelPaths)
 
-			var books []bookResult
+			var books []internal.BookResult
 			for _, rel := range allRelPaths {
 				f1, ok1 := fileMap1[rel]
 				f2, ok2 := fileMap2[rel]
 
-				var results []sheetResult
+				var results []internal.SheetResult
 				var title string
 				if ok1 && ok2 {
 					results = compareExcelFiles(f1, f2)
 					title = colorChange + rel + colorReset
 				} else if ok1 {
-					results = []sheetResult{{title: "Summary", content: fmt.Sprintf("\n%s only exists in %s", rel, path1), isTable: false}}
+					results = []internal.SheetResult{{Title: "Summary", Content: fmt.Sprintf("\n%s only exists in %s", rel, path1), IsTable: false}}
 					title = colorDel + "-" + rel + colorReset
 				} else if ok2 {
-					results = []sheetResult{{title: "Summary", content: fmt.Sprintf("\n%s only exists in %s", rel, path2), isTable: false}}
+					results = []internal.SheetResult{{Title: "Summary", Content: fmt.Sprintf("\n%s only exists in %s", rel, path2), IsTable: false}}
 					title = colorAdd + "+" + rel + colorReset
 				}
 
 				if len(results) > 0 {
-					books = append(books, bookResult{
-						fileName: title,
-						sheets:   results,
+					books = append(books, internal.BookResult{
+						FileName: title,
+						Sheets:   results,
 					})
 				}
 			}
@@ -112,7 +114,7 @@ var diffCmd = &cobra.Command{
 				return
 			}
 
-			if err := displayDirTui(books); err != nil {
+			if err := internal.DisplayDirTui(books); err != nil {
 				fmt.Printf("Error running TUI: %v\n", err)
 				os.Exit(1)
 			}
@@ -129,7 +131,7 @@ var diffCmd = &cobra.Command{
 				return
 			}
 
-			if err := displayFileTui(results); err != nil {
+			if err := internal.DisplayFileTui(results); err != nil {
 				fmt.Printf("Error running TUI: %v\n", err)
 				os.Exit(1)
 			}
@@ -157,33 +159,33 @@ func handleDiffOpen(file1, file2 string) {
 	localPath := filepath.Join(aseetDir, "[OLD]"+filepath.Base(file1))
 	remotePath := filepath.Join(aseetDir, "[NEW]"+filepath.Base(file2))
 
-	if err := copyFile(file1, localPath); err != nil {
+	if err := internal.CopyFile(file1, localPath); err != nil {
 		fmt.Printf("Error copying file1: %v\n", err)
 		os.Exit(1)
 	}
-	if err := copyFile(file2, remotePath); err != nil {
+	if err := internal.CopyFile(file2, remotePath); err != nil {
 		fmt.Printf("Error copying file2: %v\n", err)
 		os.Exit(1)
 	}
 
-	openFile(localPath)
-	openFile(remotePath)
+	internal.OpenFile(localPath)
+	internal.OpenFile(remotePath)
 }
 
-func compareExcelFiles(file1, file2 string) []sheetResult {
+func compareExcelFiles(file1, file2 string) []internal.SheetResult {
 	f1, err := excelize.OpenFile(file1)
 	if err != nil {
-		return []sheetResult{{title: "Summary", content: fmt.Sprintf("\nError opening file %s", file1), isTable: false}}
+		return []internal.SheetResult{{Title: "Summary", Content: fmt.Sprintf("\nError opening file %s", file1), IsTable: false}}
 	}
 	defer f1.Close()
 
 	f2, err := excelize.OpenFile(file2)
 	if err != nil {
-		return []sheetResult{{title: "Summary", content: fmt.Sprintf("\nError opening file %s", file2), isTable: false}}
+		return []internal.SheetResult{{Title: "Summary", Content: fmt.Sprintf("\nError opening file %s", file2), IsTable: false}}
 	}
 	defer f2.Close()
 
-	var results []sheetResult
+	var results []internal.SheetResult
 
 	sheets1 := f1.GetSheetList()
 	sheets2 := f2.GetSheetList()
@@ -236,7 +238,7 @@ func compareExcelFiles(file1, file2 string) []sheetResult {
 
 	if diffSheetName != "" {
 		if !sheetMap1[diffSheetName] && !sheetMap2[diffSheetName] {
-			return []sheetResult{{title: "Summary", content: fmt.Sprintf("\nSheet %s does not exist in either file.", diffSheetName), isTable: false}}
+			return []internal.SheetResult{{Title: "Summary", Content: fmt.Sprintf("\nSheet %s does not exist in either file.", diffSheetName), IsTable: false}}
 		}
 		allSheets = []string{diffSheetName}
 	} else {
@@ -257,17 +259,17 @@ func compareExcelFiles(file1, file2 string) []sheetResult {
 		in2 := sheetMap2[sheet]
 
 		if in1 && in2 {
-			rows1, err := getSheetData(f1, sheet, diffFormula)
+			rows1, err := internal.GetSheetData(f1, sheet, diffFormula)
 			if err != nil {
 				continue
 			}
-			rows2, err := getSheetData(f2, sheet, diffFormula)
+			rows2, err := internal.GetSheetData(f2, sheet, diffFormula)
 			if err != nil {
 				continue
 			}
 
-			rowAlign := align(rows1, rows2)
-			colAlign := align(transpose(rows1), transpose(rows2))
+			rowAlign := internal.Align(rows1, rows2)
+			colAlign := internal.Align(internal.Transpose(rows1), internal.Transpose(rows2))
 
 			hasSheetDiff := false
 			var sheetOutput [][]string
@@ -327,25 +329,25 @@ func compareExcelFiles(file1, file2 string) []sheetResult {
 					name:  sheet,
 					cells: changedCells,
 				})
-				results = append(results, sheetResult{
-					title:   colorChange + sheet + colorReset,
-					cells:   sheetOutput,
-					isTable: true,
+				results = append(results, internal.SheetResult{
+					Title:   colorChange + sheet + colorReset,
+					Cells:   sheetOutput,
+					IsTable: true,
 				})
 			}
 		} else if in1 {
-			data, _ := getSheetData(f1, sheet, diffFormula)
-			results = append(results, sheetResult{
-				title:   fmt.Sprintf("%s%s : %s%s", colorDel, filepath.Base(file1), sheet, colorReset),
-				cells:   data,
-				isTable: true,
+			data, _ := internal.GetSheetData(f1, sheet, diffFormula)
+			results = append(results, internal.SheetResult{
+				Title:   fmt.Sprintf("%s%s : %s%s", colorDel, filepath.Base(file1), sheet, colorReset),
+				Cells:   data,
+				IsTable: true,
 			})
 		} else if in2 {
-			data, _ := getSheetData(f2, sheet, diffFormula)
-			results = append(results, sheetResult{
-				title:   fmt.Sprintf("%s%s : %s%s", colorAdd, filepath.Base(file2), sheet, colorReset),
-				cells:   data,
-				isTable: true,
+			data, _ := internal.GetSheetData(f2, sheet, diffFormula)
+			results = append(results, internal.SheetResult{
+				Title:   fmt.Sprintf("%s%s : %s%s", colorAdd, filepath.Base(file2), sheet, colorReset),
+				Cells:   data,
+				IsTable: true,
 			})
 		}
 	}
@@ -368,10 +370,10 @@ func compareExcelFiles(file1, file2 string) []sheetResult {
 
 	summaryText := summaryBuilder.String()
 	if summaryText != "" {
-		results = append([]sheetResult{{
-			title:   "Summary",
-			content: summaryText,
-			isTable: false,
+		results = append([]internal.SheetResult{{
+			Title:   "Summary",
+			Content: summaryText,
+			IsTable: false,
 		}}, results...)
 	}
 

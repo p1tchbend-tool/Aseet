@@ -1,4 +1,4 @@
-package cmd
+package internal
 
 import (
 	"fmt"
@@ -10,23 +10,23 @@ import (
 )
 
 // TUIで表示する各タブ（シート）のデータを保持する構造体
-type sheetResult struct {
-	title   string     // タブに表示されるタイトル（シート名など）
-	content string     // タブ内に表示されるテキストコンテンツ（Summaryなど）
-	cells   [][]string // テーブル表示用の2次元配列データ
-	isTable bool       // trueの場合はTableとして、falseの場合はTextViewとして表示する
+type SheetResult struct {
+	Title   string     // タブに表示されるタイトル（シート名など）
+	Content string     // タブ内に表示されるテキストコンテンツ（Summaryなど）
+	Cells   [][]string // テーブル表示用の2次元配列データ
+	IsTable bool       // trueの場合はTableとして、falseの場合はTextViewとして表示する
 }
 
 // ディレクトリ比較時の各ファイル（ブック）のデータを保持する構造体
-type bookResult struct {
-	fileName string        // リストに表示されるファイル名
-	sheets   []sheetResult // ファイルに含まれるシートのデータ
+type BookResult struct {
+	FileName string        // リストに表示されるファイル名
+	Sheets   []SheetResult // ファイルに含まれるシートのデータ
 }
 
 // シートのタブ画面（メインコンテンツ）を構築する共通モジュール
 // app: tviewアプリケーションのインスタンス
 // results: 表示するシートのデータリスト
-func createSheetTabs(app *tview.Application, results []sheetResult) tview.Primitive {
+func CreateSheetTabs(app *tview.Application, results []SheetResult) tview.Primitive {
 	// ページビュー（タブのコンテンツ部分）を作成
 	pages := tview.NewPages()
 	var lastFocus tview.Primitive = pages
@@ -65,11 +65,11 @@ func createSheetTabs(app *tview.Application, results []sheetResult) tview.Primit
 	for i, res := range results {
 		pageID := fmt.Sprintf("page_%d", i)
 		// tviewのRegion機能を使ってタブのタイトルをフォーマット
-		tabTitles = append(tabTitles, fmt.Sprintf(`["%s"] %s [""]`, pageID, res.title))
+		tabTitles = append(tabTitles, fmt.Sprintf(`["%s"] %s [""]`, pageID, res.Title))
 
 		var page tview.Primitive
 
-		if res.isTable {
+		if res.IsTable {
 			// テーブルビューを作成
 			table := tview.NewTable().
 				SetBorders(true).
@@ -79,7 +79,7 @@ func createSheetTabs(app *tview.Application, results []sheetResult) tview.Primit
 
 			// 最大列数を計算
 			maxCols := 0
-			for _, row := range res.cells {
+			for _, row := range res.Cells {
 				if len(row) > maxCols {
 					maxCols = len(row)
 				}
@@ -101,7 +101,7 @@ func createSheetTabs(app *tview.Application, results []sheetResult) tview.Primit
 
 			// 行データと行ヘッダー (1, 2, 3...) を追加
 			// 常に1つ余分な行を追加
-			rowCount := len(res.cells) + 1
+			rowCount := len(res.Cells) + 1
 			for r := 0; r < rowCount; r++ {
 				table.SetCell(r+1, 0, tview.NewTableCell(fmt.Sprintf("%d", r+1)).
 					SetSelectable(false).
@@ -109,8 +109,8 @@ func createSheetTabs(app *tview.Application, results []sheetResult) tview.Primit
 					SetTextColor(tcell.GetColor("#f0e442")))
 
 				var row []string
-				if r < len(res.cells) {
-					row = res.cells[r]
+				if r < len(res.Cells) {
+					row = res.Cells[r]
 				}
 
 				for c := 0; c < maxCols; c++ {
@@ -133,7 +133,7 @@ func createSheetTabs(app *tview.Application, results []sheetResult) tview.Primit
 			// テキストビューを作成（Summaryなど用）
 			textView := tview.NewTextView().
 				SetDynamicColors(true).
-				SetText(res.content).
+				SetText(res.Content).
 				SetScrollable(true).
 				SetWrap(false)
 			textView.SetBackgroundColor(tcell.ColorDefault)
@@ -403,10 +403,10 @@ func createSheetTabs(app *tview.Application, results []sheetResult) tview.Primit
 }
 
 // ファイル比較用のTUIアプリケーションを構築して表示する
-func displayFileTui(results []sheetResult) error {
+func DisplayFileTui(results []SheetResult) error {
 	app := tview.NewApplication()
 	// シートタブ画面を構築
-	layout := createSheetTabs(app, results)
+	layout := CreateSheetTabs(app, results)
 
 	// ヘルプテキスト（操作説明）の作成
 	helpText1 := " [#f0e442]Tab[-]: Switch tab | [#f0e442]b / f[-]: Scroll tab | [#f0e442]h / j / k / l[-]: Scroll text | [#f0e442]n[-]: Next diff | [#f0e442]g[-]: Go to edge | [#f0e442]q[-]: Quit "
@@ -443,7 +443,7 @@ func displayFileTui(results []sheetResult) error {
 }
 
 // ディレクトリ比較用の2ペインTUIを表示する
-func displayDirTui(books []bookResult) error {
+func DisplayDirTui(books []BookResult) error {
 	app := tview.NewApplication()
 
 	// 左ペイン：ファイル一覧を表示するリスト
@@ -475,11 +475,11 @@ func displayDirTui(books []bookResult) error {
 	for i, book := range books {
 		bookPageID := fmt.Sprintf("book_%d", i)
 		// ブックごとのシートタブ画面を構築
-		sheetTabs := createSheetTabs(app, book.sheets)
+		sheetTabs := CreateSheetTabs(app, book.Sheets)
 		// 右ペインにページとして追加（最初のブックのみ表示）
 		rightPages.AddPage(bookPageID, sheetTabs, true, i == 0)
 		// リストにファイル名を追加
-		list.AddItem(book.fileName, "", 0, nil)
+		list.AddItem(book.FileName, "", 0, nil)
 	}
 
 	// リストの選択が変更されたら、右ペインの表示を切り替える

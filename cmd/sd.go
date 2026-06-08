@@ -5,6 +5,8 @@ import (
 	"os"
 	"regexp"
 
+	"aseet/internal"
+
 	"github.com/spf13/cobra"
 	"github.com/xuri/excelize/v2"
 )
@@ -54,7 +56,7 @@ var sdCmd = &cobra.Command{
 
 		// パスがディレクトリの場合
 		if info.IsDir() {
-			filesToProcess = findExcelFiles(path, sdRecursive)
+			filesToProcess = internal.FindExcelFiles(path, sdRecursive)
 		} else {
 			// パスがファイルの場合
 			filesToProcess = append(filesToProcess, path)

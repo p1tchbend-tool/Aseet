@@ -1,4 +1,4 @@
-package cmd
+package internal
 
 import (
 	"os"
@@ -27,8 +27,8 @@ func TestIsExcelFile(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.ext, func(t *testing.T) {
-			if got := isExcelFile(tt.ext); got != tt.expected {
-				t.Errorf("isExcelFile(%q) = %v, want %v", tt.ext, got, tt.expected)
+			if got := IsExcelFile(tt.ext); got != tt.expected {
+				t.Errorf("IsExcelFile(%q) = %v, want %v", tt.ext, got, tt.expected)
 			}
 		})
 	}
@@ -64,7 +64,7 @@ func TestGetSheetData_TestData(t *testing.T) {
 	defer f.Close()
 
 	t.Run("Without Formula", func(t *testing.T) {
-		got, err := getSheetData(f, sheetName, false)
+		got, err := GetSheetData(f, sheetName, false)
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -74,7 +74,7 @@ func TestGetSheetData_TestData(t *testing.T) {
 		}
 
 		if !reflect.DeepEqual(got, expected) {
-			t.Errorf("getSheetData() = %v, want %v", got, expected)
+			t.Errorf("GetSheetData() = %v, want %v", got, expected)
 		}
 	})
 }
@@ -92,8 +92,8 @@ func TestCountNonEmpty(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := countNonEmpty(tt.row); got != tt.expected {
-				t.Errorf("countNonEmpty() = %v, want %v", got, tt.expected)
+			if got := CountNonEmpty(tt.row); got != tt.expected {
+				t.Errorf("CountNonEmpty() = %v, want %v", got, tt.expected)
 			}
 		})
 	}
@@ -110,9 +110,9 @@ func TestTranspose(t *testing.T) {
 		{"3", ""},
 	}
 
-	got := transpose(input)
+	got := Transpose(input)
 	if !reflect.DeepEqual(got, expected) {
-		t.Errorf("transpose() = %v, want %v", got, expected)
+		t.Errorf("Transpose() = %v, want %v", got, expected)
 	}
 }
 
@@ -130,8 +130,8 @@ func TestCalcMatchCost(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := calcMatchCost(tt.row1, tt.row2); got != tt.expected {
-				t.Errorf("calcMatchCost() = %v, want %v", got, tt.expected)
+			if got := CalcMatchCost(tt.row1, tt.row2); got != tt.expected {
+				t.Errorf("CalcMatchCost() = %v, want %v", got, tt.expected)
 			}
 		})
 	}
@@ -151,9 +151,9 @@ func TestAlign(t *testing.T) {
 		{2, 1},
 	}
 
-	got := align(a, b)
+	got := Align(a, b)
 	if !reflect.DeepEqual(got, expected) {
-		t.Errorf("align() = %v, want %v", got, expected)
+		t.Errorf("Align() = %v, want %v", got, expected)
 	}
 }
 
@@ -188,7 +188,7 @@ func TestFindExcelFiles(t *testing.T) {
 	}
 
 	t.Run("Non-recursive", func(t *testing.T) {
-		got := findExcelFiles(tempDir, false)
+		got := FindExcelFiles(tempDir, false)
 		expected := []string{
 			filepath.Join(tempDir, "a.xlsx"),
 		}
@@ -198,12 +198,12 @@ func TestFindExcelFiles(t *testing.T) {
 		sort.Strings(expected)
 
 		if !reflect.DeepEqual(got, expected) {
-			t.Errorf("findExcelFiles(recursive=false) = %v, want %v", got, expected)
+			t.Errorf("FindExcelFiles(recursive=false) = %v, want %v", got, expected)
 		}
 	})
 
 	t.Run("Recursive", func(t *testing.T) {
-		got := findExcelFiles(tempDir, true)
+		got := FindExcelFiles(tempDir, true)
 		expected := []string{
 			filepath.Join(tempDir, "a.xlsx"),
 			filepath.Join(subDir, "c.xlsm"),
@@ -214,7 +214,7 @@ func TestFindExcelFiles(t *testing.T) {
 		sort.Strings(expected)
 
 		if !reflect.DeepEqual(got, expected) {
-			t.Errorf("findExcelFiles(recursive=true) = %v, want %v", got, expected)
+			t.Errorf("FindExcelFiles(recursive=true) = %v, want %v", got, expected)
 		}
 	})
 }

@@ -1,4 +1,4 @@
-package cmd
+package internal
 
 import (
 	"fmt"
@@ -12,12 +12,12 @@ import (
 )
 
 // 対応するExcelファイルの拡張子かどうかを判定する
-func isExcelFile(ext string) bool {
+func IsExcelFile(ext string) bool {
 	return ext == ".xlsx" || ext == ".xlsm" || ext == ".xlam" || ext == ".xltm" || ext == ".xltx"
 }
 
 // シートのデータを2次元配列として取得する。isFormulaがtrueの場合は値ではなく数式を取得する
-func getSheetData(f *excelize.File, sheetName string, isFormula bool) ([][]string, error) {
+func GetSheetData(f *excelize.File, sheetName string, isFormula bool) ([][]string, error) {
 	// シートの全行を取得
 	rows, err := f.GetRows(sheetName)
 	if err != nil {
@@ -54,7 +54,7 @@ func getSheetData(f *excelize.File, sheetName string, isFormula bool) ([][]strin
 }
 
 // ファイルをコピーする（一時ファイルの作成などに使用）
-func copyFile(src, dst string) error {
+func CopyFile(src, dst string) error {
 	input, err := os.ReadFile(src)
 	if err != nil {
 		return err
@@ -63,7 +63,7 @@ func copyFile(src, dst string) error {
 }
 
 // OSの関連付けられた既定のアプリケーションでファイルを開く
-func openFile(path string) {
+func OpenFile(path string) {
 	var cmd *exec.Cmd
 	switch runtime.GOOS {
 	case "windows":
@@ -80,7 +80,7 @@ func openFile(path string) {
 }
 
 // 行内の空でないセルの数をカウントする（アライメントのコスト計算に使用）
-func countNonEmpty(row []string) int {
+func CountNonEmpty(row []string) int {
 	c := 0
 	for _, v := range row {
 		if v != "" {
@@ -91,7 +91,7 @@ func countNonEmpty(row []string) int {
 }
 
 // 2次元配列（マトリックス）を転置する（行と列を入れ替える）
-func transpose(matrix [][]string) [][]string {
+func Transpose(matrix [][]string) [][]string {
 	maxCol := 0
 	for _, row := range matrix {
 		if len(row) > maxCol {
@@ -111,7 +111,7 @@ func transpose(matrix [][]string) [][]string {
 }
 
 // 2つの行を比較し、不一致要素数（コスト）を計算する
-func calcMatchCost(row1, row2 []string) int {
+func CalcMatchCost(row1, row2 []string) int {
 	matchCost := 0
 	maxL := len(row1)
 	if len(row2) > maxL {
@@ -134,7 +134,7 @@ func calcMatchCost(row1, row2 []string) int {
 
 // 動的計画法（DP）を用いて2つの2次元配列のアライメント（差分パス）を計算する
 // 行の挿入・削除を考慮して、最も変更コストが少ない対応関係を見つける
-func align(a, b [][]string) [][2]int {
+func Align(a, b [][]string) [][2]int {
 	n, m := len(a), len(b)
 	// DPテーブルの初期化
 	dp := make([][]int, n+1)
@@ -144,19 +144,19 @@ func align(a, b [][]string) [][2]int {
 
 	// 初期化：aの要素をすべて削除する場合のコスト
 	for i := 1; i <= n; i++ {
-		dp[i][0] = dp[i-1][0] + countNonEmpty(a[i-1])
+		dp[i][0] = dp[i-1][0] + CountNonEmpty(a[i-1])
 	}
 	// 初期化：bの要素をすべて挿入する場合のコスト
 	for j := 1; j <= m; j++ {
-		dp[0][j] = dp[0][j-1] + countNonEmpty(b[j-1])
+		dp[0][j] = dp[0][j-1] + CountNonEmpty(b[j-1])
 	}
 
 	// DPテーブルを埋める（最小コストを計算）
 	for i := 1; i <= n; i++ {
 		for j := 1; j <= m; j++ {
-			costDel := dp[i-1][j] + countNonEmpty(a[i-1])             // 削除コスト
-			costIns := dp[i][j-1] + countNonEmpty(b[j-1])             // 挿入コスト
-			costMatch := dp[i-1][j-1] + calcMatchCost(a[i-1], b[j-1]) // 置換（マッチ）コスト
+			costDel := dp[i-1][j] + CountNonEmpty(a[i-1])             // 削除コスト
+			costIns := dp[i][j-1] + CountNonEmpty(b[j-1])             // 挿入コスト
+			costMatch := dp[i-1][j-1] + CalcMatchCost(a[i-1], b[j-1]) // 置換（マッチ）コスト
 
 			minCost := costDel
 			if costIns < minCost {
@@ -175,7 +175,7 @@ func align(a, b [][]string) [][2]int {
 	for i > 0 || j > 0 {
 		if i > 0 && j > 0 {
 			// マッチ（置換）のパスから来た場合
-			if dp[i][j] == dp[i-1][j-1]+calcMatchCost(a[i-1], b[j-1]) {
+			if dp[i][j] == dp[i-1][j-1]+CalcMatchCost(a[i-1], b[j-1]) {
 				path = append([][2]int{{i - 1, j - 1}}, path...)
 				i--
 				j--
@@ -183,7 +183,7 @@ func align(a, b [][]string) [][2]int {
 			}
 		}
 		// 削除のパスから来た場合
-		if i > 0 && dp[i][j] == dp[i-1][j]+countNonEmpty(a[i-1]) {
+		if i > 0 && dp[i][j] == dp[i-1][j]+CountNonEmpty(a[i-1]) {
 			path = append([][2]int{{i - 1, -1}}, path...)
 			i--
 		} else {
@@ -197,7 +197,7 @@ func align(a, b [][]string) [][2]int {
 
 // 指定されたディレクトリ内のExcelファイルを探索してパスの配列を返す
 // recursiveがtrueの場合はサブディレクトリも再帰的に探索する
-func findExcelFiles(dirPath string, recursive bool) []string {
+func FindExcelFiles(dirPath string, recursive bool) []string {
 	var files []string
 
 	if recursive {
@@ -209,7 +209,7 @@ func findExcelFiles(dirPath string, recursive bool) []string {
 			}
 			if !info.IsDir() {
 				ext := strings.ToLower(filepath.Ext(p))
-				if isExcelFile(ext) {
+				if IsExcelFile(ext) {
 					files = append(files, p)
 				}
 			}
@@ -222,7 +222,7 @@ func findExcelFiles(dirPath string, recursive bool) []string {
 			for _, entry := range entries {
 				if !entry.IsDir() {
 					ext := strings.ToLower(filepath.Ext(entry.Name()))
-					if isExcelFile(ext) {
+					if IsExcelFile(ext) {
 						files = append(files, filepath.Join(dirPath, entry.Name()))
 					}
 				}

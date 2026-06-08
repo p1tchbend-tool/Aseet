@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"os"
 
+	"aseet/internal"
+
 	"github.com/spf13/cobra"
 	"github.com/xuri/excelize/v2"
 )
@@ -30,46 +32,46 @@ var catCmd = &cobra.Command{
 
 		// 特定のシート名が指定された場合の処理
 		if sheetName != "" {
-			data, err := getSheetData(f, sheetName, catFormula)
+			data, err := internal.GetSheetData(f, sheetName, catFormula)
 			if err != nil {
 				fmt.Printf("Error reading sheet %s\n", sheetName)
 				os.Exit(1)
 			}
 
-			results := []sheetResult{
+			results := []internal.SheetResult{
 				{
-					title:   sheetName,
-					cells:   data,
-					isTable: true,
+					Title:   sheetName,
+					Cells:   data,
+					IsTable: true,
 				},
 			}
 
 			// TUIアプリケーションを実行する
-			if err := displayFileTui(results); err != nil {
+			if err := internal.DisplayFileTui(results); err != nil {
 				fmt.Printf("Error running TUI: %v\n", err)
 				os.Exit(1)
 			}
 
 		} else if all {
 			// --allオプションが指定された場合、全シートをTUIで表示する
-			var results []sheetResult
+			var results []internal.SheetResult
 
 			// 全シートの内容を取得してスライスに保存する
 			for _, sheet := range f.GetSheetList() {
-				data, err := getSheetData(f, sheet, catFormula)
+				data, err := internal.GetSheetData(f, sheet, catFormula)
 				if err != nil {
 					fmt.Printf("Error reading sheet %s\n", sheet)
 					continue
 				}
-				results = append(results, sheetResult{
-					title:   sheet,
-					cells:   data,
-					isTable: true,
+				results = append(results, internal.SheetResult{
+					Title:   sheet,
+					Cells:   data,
+					IsTable: true,
 				})
 			}
 
 			// TUIアプリケーションを実行する
-			if err := displayFileTui(results); err != nil {
+			if err := internal.DisplayFileTui(results); err != nil {
 				fmt.Printf("Error running TUI: %v\n", err)
 				os.Exit(1)
 			}
